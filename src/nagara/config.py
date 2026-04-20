@@ -22,7 +22,7 @@ from datetime import timedelta
 from enum import StrEnum
 from typing import Literal
 
-from pydantic import PostgresDsn, SecretStr
+from pydantic import AliasChoices, Field, PostgresDsn, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -61,6 +61,13 @@ class Settings(BaseSettings):
     USER_SESSION_TTL: timedelta = timedelta(days=31)
 
     # ── Database ────────────────────────────────────────────────────────
+    # Full-URL override. When set, wins over POSTGRES_* parts. Accepts the
+    # unprefixed ``DATABASE_URL`` env var too, so operators with an existing
+    # Heroku/Render/Supabase URL don't have to rename anything.
+    DATABASE_URL: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("NAGARA_DATABASE_URL", "DATABASE_URL"),
+    )
     POSTGRES_USER: str = "nagara"
     POSTGRES_PWD: SecretStr = SecretStr("nagara")
     POSTGRES_HOST: str = "127.0.0.1"
@@ -95,6 +102,19 @@ class Settings(BaseSettings):
         return self.is_environment({Environment.production})
 
     def get_postgres_dsn(self, driver: Literal["asyncpg", "psycopg2"] = "asyncpg") -> str:
+        # DATABASE_URL (if set) wins over POSTGRES_* parts. Swap or inject the
+        # driver so callers always get exactly `postgresql+<driver>://...`.
+        if self.DATABASE_URL:
+            url = self.DATABASE_URL
+            if url.startswith(f"postgresql+{driver}://"):
+                return url
+            if url.startswith("postgresql+"):
+                # Replace whatever driver was specified with the requested one.
+                rest = url.split("://", 1)[1]
+                return f"postgresql+{driver}://{rest}"
+            if url.startswith("postgresql://"):
+                return url.replace("postgresql://", f"postgresql+{driver}://", 1)
+            return url
         return str(
             PostgresDsn.build(
                 scheme=f"postgresql+{driver}",
