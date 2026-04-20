@@ -104,6 +104,21 @@ class Settings(BaseSettings):
     def is_production(self) -> bool:
         return self.is_environment({Environment.production})
 
+    def safe_dump(self, *, include_secrets: bool = False) -> dict[str, Any]:
+        """Serialize to a plain dict suitable for API responses or debug views.
+
+        SecretStr fields are replaced with ``"***"`` unless ``include_secrets=True``,
+        in which case they're unwrapped to their real string value.
+        Non-JSON-serializable types (timedelta, etc.) stay as-is — pass the result
+        through ``json.dumps(..., default=str)`` if you need a JSON string.
+        """
+        data = self.model_dump(mode="python")
+        for name in type(self).model_fields:
+            attr = getattr(self, name, None)
+            if isinstance(attr, SecretStr):
+                data[name] = attr.get_secret_value() if include_secrets else "***"
+        return data
+
     def get_postgres_dsn(self, driver: Literal["asyncpg", "psycopg2"] = "asyncpg") -> str:
         # DATABASE_URL (if set) wins over POSTGRES_* parts. Swap or inject the
         # driver so callers always get exactly `postgresql+<driver>://...`.
