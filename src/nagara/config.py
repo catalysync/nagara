@@ -17,10 +17,13 @@ Usage::
 
 from __future__ import annotations
 
+import contextlib
 import os
+from collections.abc import Iterator
+from contextvars import ContextVar
 from datetime import timedelta
 from enum import StrEnum
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import AliasChoices, Field, PostgresDsn, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -142,3 +145,38 @@ def verify_settings(s: Settings) -> None:
 
 
 settings = Settings()
+
+
+# ── Scoped overrides ────────────────────
+# A ContextVar holds the "current" Settings instance so scoped overrides —
+# useful in tests and per-request contexts — can swap it without touching the
+# module singleton.
+
+_current: ContextVar[Settings] = ContextVar("nagara_current_settings", default=settings)
+
+
+def get_current_settings() -> Settings:
+    """Return the active Settings, honoring any ``temporary_settings()`` scope."""
+    return _current.get()
+
+
+@contextlib.contextmanager
+def temporary_settings(**overrides: Any) -> Iterator[Settings]:
+    """Temporarily override settings inside a block.
+
+    Builds a fresh Settings with the given overrides applied on top of the
+    currently-active one, swaps the ContextVar, and restores on exit (even on
+    exception). Safe to nest.
+
+    Example::
+
+        with temporary_settings(ENV=Environment.production):
+            assert get_current_settings().is_production()
+    """
+    current = _current.get()
+    merged = current.model_copy(update=overrides)
+    token = _current.set(merged)
+    try:
+        yield merged
+    finally:
+        _current.reset(token)
