@@ -37,3 +37,13 @@ htmlcov/
 
 # logs
 *.log
+
+# local agent/tooling state — never commit
+.claude/
+.aider*
+CLAUDE.md
+GEMINI.md
+.cursorrules
+memory/
+notes/
+scratch/
