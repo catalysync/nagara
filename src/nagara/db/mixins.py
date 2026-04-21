@@ -16,7 +16,9 @@ from sqlalchemy import DateTime, Uuid, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 
-def _utcnow() -> datetime:
+def utcnow() -> datetime:
+    """Current UTC time, tz-aware. Use as the python-side default for tz-aware
+    DateTime columns."""
     return datetime.now(UTC)
 
 
@@ -33,14 +35,14 @@ class TimestampedMixin:
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
-        default=_utcnow,
+        default=utcnow,
         server_default=func.now(),
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
-        default=_utcnow,
-        onupdate=_utcnow,
+        default=utcnow,
+        onupdate=utcnow,
         server_default=func.now(),
     )
 
