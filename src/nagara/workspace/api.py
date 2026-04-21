@@ -6,6 +6,7 @@ transaction, so users who never need >1 env never see the concept.
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from typing import Annotated
 from uuid import UUID
 
@@ -15,6 +16,8 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from nagara.db.session import get_session
+from nagara.events import MemberAdded, WorkspaceCreated, get_bus
+from nagara.features import get_resolver
 from nagara.iam.membership import Membership
 from nagara.workspace.model import Environment, Workspace
 from nagara.workspace.schemas import (
@@ -31,6 +34,13 @@ SessionDep = Annotated[AsyncSession, Depends(get_session)]
 
 @router.post("", response_model=WorkspaceRead, status_code=status.HTTP_201_CREATED)
 async def create_workspace(payload: WorkspaceCreate, session: SessionDep) -> Workspace:
+    check = await get_resolver().can_create_workspace(payload.org_id)
+    if not check.allowed:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=check.reason or "workspace creation not permitted",
+        )
+
     ws = Workspace(**payload.model_dump())
     session.add(ws)
     try:
@@ -51,6 +61,16 @@ async def create_workspace(payload: WorkspaceCreate, session: SessionDep) -> Wor
             detail=f"workspace with slug '{payload.slug}' already exists in this org",
         ) from exc
     await session.refresh(ws)
+
+    await get_bus().emit(
+        WorkspaceCreated(
+            occurred_at=datetime.now(UTC),
+            org_id=ws.org_id,
+            workspace_id=ws.id,
+            slug=ws.slug,
+            created_by=ws.created_by,
+        )
+    )
     return ws
 
 
@@ -75,6 +95,13 @@ async def add_member(
     payload: MembershipCreate,
     session: SessionDep,
 ) -> Membership:
+    check = await get_resolver().can_invite_member(workspace_id)
+    if not check.allowed:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=check.reason or "member invitation not permitted",
+        )
+
     member = Membership(
         workspace_id=workspace_id,
         user_id=payload.user_id,
@@ -91,4 +118,16 @@ async def add_member(
             detail="principal is already a member of this workspace",
         ) from exc
     await session.refresh(member)
+
+    await get_bus().emit(
+        MemberAdded(
+            occurred_at=datetime.now(UTC),
+            workspace_id=workspace_id,
+            membership_id=member.id,
+            user_id=member.user_id,
+            group_id=member.group_id,
+            # StrEnum stringifies to its .value; bare str passes through.
+            role=str(member.role),
+        )
+    )
     return member
