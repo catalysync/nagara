@@ -23,6 +23,7 @@ from nagara.db.session import build_engine, build_sessionmaker
 # create_all runs. Add new domains here as they're introduced.
 from nagara.iam import model as _iam_model  # noqa: F401  — side-effect import
 from nagara.org import model as _org_model  # noqa: F401  — side-effect import
+from nagara.workspace import model as _workspace_model  # noqa: F401  — side-effect import
 
 
 @pytest_asyncio.fixture
