@@ -1,0 +1,79 @@
+# Local dev + smoke-test stack.
+#
+# Default profile starts the database and cache only — bring your own app
+# (run `just dev` against these services). Use the `app` profile to also
+# spin up nagara itself in a container.
+#
+# Usage:
+#   docker compose up -d              # postgres + redis only
+#   docker compose --profile app up   # add the app container
+
+name: nagara
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER:     ${NAGARA_POSTGRES_USER:-nagara}
+      POSTGRES_PASSWORD: ${NAGARA_POSTGRES_PWD:-nagara}
+      POSTGRES_DB:       ${NAGARA_POSTGRES_DB:-nagara}
+    ports:
+      - "${NAGARA_POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${NAGARA_POSTGRES_USER:-nagara} -d ${NAGARA_POSTGRES_DB:-nagara}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    ports:
+      - "${NAGARA_REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  app:
+    profiles: ["app"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      NAGARA_ENV: development
+      NAGARA_POSTGRES_HOST: postgres
+      NAGARA_POSTGRES_PORT: "5432"
+      NAGARA_POSTGRES_USER: ${NAGARA_POSTGRES_USER:-nagara}
+      NAGARA_POSTGRES_PWD:  ${NAGARA_POSTGRES_PWD:-nagara}
+      NAGARA_POSTGRES_DB:   ${NAGARA_POSTGRES_DB:-nagara}
+    ports:
+      - "${NAGARA_PORT:-8000}:8000"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:8000/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 15s
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  default:
+    name: nagara
