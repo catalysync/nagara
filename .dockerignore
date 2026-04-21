@@ -1,0 +1,47 @@
+# vcs
+.git
+.gitignore
+.github
+
+# python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info
+.eggs
+build
+dist
+
+# venv + caches
+.venv
+.uv-cache
+.pytest_cache
+.coverage
+.coverage.*
+htmlcov
+.mypy_cache
+.ruff_cache
+
+# editors
+.vscode
+.idea
+*.swp
+.DS_Store
+
+# docker
+Dockerfile*
+.dockerignore
+docker-compose*.yml
+
+# secrets
+.env
+.env.local
+.env.*.local
+
+# tests + tooling not needed in image
+tests
+notes
+scratch
+*.md
