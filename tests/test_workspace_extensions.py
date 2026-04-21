@@ -1,6 +1,9 @@
-"""FeatureResolver gating + WorkspaceCreated event emission on POST /workspaces.
+"""FeatureResolver gating + outbox emission on POST /workspaces.
 
-These exercise the extension seams core exposes to the private cloud repo.
+Exercises the extension seams core exposes to the private cloud repo.
+Events are staged on the durable outbox in the same transaction as the
+state change and drained by a separate worker — these tests walk that path
+end-to-end to prove the integration.
 """
 
 from __future__ import annotations
@@ -11,12 +14,14 @@ from uuid import UUID
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from nagara.events import EventBus, WorkspaceCreated
 from nagara.features import FeatureCheck, FeatureResolver
 from nagara.iam.model import User
 from nagara.org.model import Org
+from nagara.outbox import OutboxEvent, drain_once
 
 
 async def _seed(session: AsyncSession) -> tuple[Org, User]:
@@ -60,41 +65,69 @@ async def test_feature_resolver_denial_returns_403(
 
 
 @pytest.mark.asyncio
-async def test_workspace_created_event_fires_after_commit(
+async def test_workspace_created_event_landed_in_outbox(
     api_client: tuple[AsyncClient, Any], session: AsyncSession
 ):
-    import nagara.events as events
+    client, _ = api_client
+    org, user = await _seed(session)
+    res = await client.post(
+        "/workspaces",
+        json={
+            "org_id": str(org.id),
+            "slug": "p",
+            "name": "P",
+            "created_by": str(user.id),
+        },
+    )
+    assert res.status_code == 201
 
+    rows = (
+        (
+            await session.execute(
+                select(OutboxEvent).where(OutboxEvent.event_type == "WorkspaceCreated")
+            )
+        )
+        .scalars()
+        .all()
+    )
+    assert len(rows) == 1
+    row = rows[0]
+    assert row.processed_at is None
+    assert row.payload["slug"] == "p"
+    assert row.payload["org_id"] == str(org.id)
+    assert row.payload["workspace_id"] == res.json()["id"]
+    assert row.payload["created_by"] == str(user.id)
+
+
+@pytest.mark.asyncio
+async def test_draining_outbox_dispatches_to_subscribed_handler(
+    api_client: tuple[AsyncClient, Any], session: AsyncSession
+):
+    client, _ = api_client
+    org, user = await _seed(session)
+    await client.post(
+        "/workspaces",
+        json={
+            "org_id": str(org.id),
+            "slug": "p",
+            "name": "P",
+            "created_by": str(user.id),
+        },
+    )
+
+    bus = EventBus()
     received: list[WorkspaceCreated] = []
 
     async def handler(evt: WorkspaceCreated) -> None:
         received.append(evt)
 
-    # Swap in a fresh bus so we don't leak handlers across tests.
-    original = events._bus
-    events._bus = EventBus()
-    events._bus.subscribe(WorkspaceCreated, handler)
-    try:
-        client, _ = api_client
-        org, user = await _seed(session)
-        res = await client.post(
-            "/workspaces",
-            json={
-                "org_id": str(org.id),
-                "slug": "p",
-                "name": "P",
-                "created_by": str(user.id),
-            },
-        )
-        assert res.status_code == 201
-        assert len(received) == 1
-        evt = received[0]
-        assert evt.slug == "p"
-        assert str(evt.org_id) == str(org.id)
-        assert str(evt.workspace_id) == res.json()["id"]
-        assert str(evt.created_by) == str(user.id)
-    finally:
-        events._bus = original
+    bus.subscribe(WorkspaceCreated, handler)
+    processed = await drain_once(session, bus)
+
+    assert processed == 1
+    assert len(received) == 1
+    assert received[0].slug == "p"
+    assert received[0].org_id == org.id
 
 
 @pytest_asyncio.fixture

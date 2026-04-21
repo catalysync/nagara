@@ -11,6 +11,7 @@ only registration step needed.
 
 from __future__ import annotations
 
+from nagara import outbox as _outbox  # noqa: F401
 from nagara.audit import model as _audit_model  # noqa: F401
 from nagara.iam import membership as _iam_membership  # noqa: F401
 from nagara.iam import model as _iam_model  # noqa: F401
