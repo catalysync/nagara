@@ -30,4 +30,16 @@ class Base(DeclarativeBase):
 metadata = Base.metadata
 
 
-__all__ = ["Base", "metadata"]
+from nagara.db.mixins import (  # noqa: E402
+    SoftDeleteMixin,
+    TimestampedMixin,
+    UUIDPrimaryKeyMixin,
+)
+
+__all__ = [
+    "Base",
+    "SoftDeleteMixin",
+    "TimestampedMixin",
+    "UUIDPrimaryKeyMixin",
+    "metadata",
+]
