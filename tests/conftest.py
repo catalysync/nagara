@@ -16,16 +16,11 @@ from collections.abc import AsyncIterator
 import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 
-# Import every model module so its tables register on Base.metadata before
-# create_all runs. Add new domains here as they're introduced.
-from nagara.audit import model as _audit_model  # noqa: F401  — side-effect import
+# Importing nagara.models registers every table on Base.metadata before
+# create_all runs.
+from nagara import models as _models  # noqa: F401  — side-effect import
 from nagara.db import Base
 from nagara.db.session import build_engine, build_sessionmaker
-from nagara.iam import membership as _iam_membership  # noqa: F401  — side-effect import
-from nagara.iam import model as _iam_model  # noqa: F401  — side-effect import
-from nagara.iam import token as _iam_token  # noqa: F401  — side-effect import
-from nagara.org import model as _org_model  # noqa: F401  — side-effect import
-from nagara.workspace import model as _workspace_model  # noqa: F401  — side-effect import
 
 
 @pytest_asyncio.fixture
