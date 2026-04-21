@@ -16,6 +16,11 @@ dependencies = [
     "uvicorn[standard]>=0.44.0",
 ]
 
+[project.optional-dependencies]
+# Secret backends — install only the one(s) you use.
+# `pip install nagara[infisical]` pulls the Infisical SDK.
+infisical = ["infisicalsdk>=1.0.0"]
+
 [build-system]
 requires = ["uv_build>=0.11.7,<0.12.0"]
 build-backend = "uv_build"
