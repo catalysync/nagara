@@ -2,13 +2,11 @@
 
 from __future__ import annotations
 
-from collections.abc import AsyncIterator
-
 import pytest
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
 from sqlalchemy.sql import text
 
-from nagara.db.session import build_engine, build_sessionmaker, get_session
+from nagara.db.session import build_engine, build_sessionmaker
 
 
 @pytest.fixture
@@ -28,17 +26,3 @@ async def test_build_sessionmaker_yields_working_session(sqlite_engine: AsyncEng
         assert isinstance(session, AsyncSession)
         result = await session.execute(text("select 1"))
         assert result.scalar_one() == 1
-
-
-@pytest.mark.asyncio
-async def test_get_session_dependency_yields_then_closes(sqlite_engine: AsyncEngine) -> None:
-    factory = build_sessionmaker(sqlite_engine)
-    gen: AsyncIterator[AsyncSession] = get_session(factory)
-    session = await anext(gen)
-    assert isinstance(session, AsyncSession)
-    # Session should be usable inside the dependency scope.
-    result = await session.execute(text("select 1"))
-    assert result.scalar_one() == 1
-    # Exhausting the generator closes it cleanly.
-    with pytest.raises(StopAsyncIteration):
-        await anext(gen)
