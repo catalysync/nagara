@@ -1,0 +1,102 @@
+# Default values for nagara-core. Override via `-f my-values.yaml` or `--set`.
+
+image:
+  repository: ghcr.io/catalysync/nagara
+  tag: ""  # defaults to Chart.appVersion when empty
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
+# Deployment sizing. Nagara is stateless; scale horizontally.
+replicaCount: 2
+
+# Pod-level security. Non-root baked into the image; the SecurityContext
+# hardens further.
+podSecurityContext:
+  fsGroup: 1001
+  runAsNonRoot: true
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop: ["ALL"]
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 512Mi
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+
+# HTTP service. ClusterIP by default — front it with your own Ingress.
+service:
+  type: ClusterIP
+  port: 8000
+
+# ── Health probes ───────────────────────────────────────────────────────────
+# Liveness is cheap. Readiness hits the DB (503 during outages → k8s pulls
+# the pod out of the Service endpoint set without killing it).
+probes:
+  liveness:
+    path: /health/live
+    initialDelaySeconds: 10
+    periodSeconds: 10
+  readiness:
+    path: /health/ready
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    failureThreshold: 3
+
+# ── Migrations (init container) ─────────────────────────────────────────────
+# Runs `alembic upgrade head` before the app container starts. Same image,
+# different command. Equivalent to the `prestart` service in docker-compose.
+migrations:
+  enabled: true
+
+# ── Config & secrets ────────────────────────────────────────────────────────
+# Non-secret settings live in the rendered ConfigMap. Secret refs expect a
+# pre-existing Secret (from External Secrets / Vault / sealed-secrets). Set
+# `existingSecret` to its name; omit to render a templated Secret from
+# plaintext `secrets.*` values — only appropriate for dev clusters.
+env:
+  NAGARA_ENV: production
+  NAGARA_LOG_LEVEL: INFO
+  NAGARA_POSTGRES_HOST: nagara-postgres
+  NAGARA_POSTGRES_PORT: "5432"
+  NAGARA_POSTGRES_DB: nagara
+  NAGARA_POSTGRES_USER: nagara
+
+existingSecret: ""
+
+secrets:
+  NAGARA_SECRET_KEY: ""   # REQUIRED in production
+  NAGARA_POSTGRES_PWD: ""
+
+# ── Horizontal Pod Autoscaler ───────────────────────────────────────────────
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+
+# ── Ingress ─────────────────────────────────────────────────────────────────
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts: []
+  tls: []
+
+# Optional — override pod labels, node selectors, tolerations, affinity.
+podAnnotations: {}
+podLabels: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""

@@ -1,0 +1,18 @@
+# Local-dev overrides. Compose auto-applies this on top of docker-compose.yml
+# when you run plain `docker compose up`. Don't rely on it in prod — use an
+# explicit file list: `docker compose -f docker-compose.yml up`.
+
+services:
+  app:
+    # Source-mount so `uvicorn --reload` picks up edits without rebuilding.
+    volumes:
+      - ./src:/app/src:ro
+    # Dev server with reload. Overrides the image's production CMD.
+    command:
+      - "uvicorn"
+      - "nagara.main:app"
+      - "--host"
+      - "0.0.0.0"
+      - "--port"
+      - "8000"
+      - "--reload"

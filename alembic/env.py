@@ -9,14 +9,14 @@ from __future__ import annotations
 
 from logging.config import fileConfig
 
-from alembic import context
 from sqlalchemy import engine_from_config, pool
 
-from nagara.config import settings
+from alembic import context
 
 # Models import their Base / register themselves on the metadata when their
 # package is imported. Importing the db module triggers that registration.
 from nagara import db  # noqa: F401  — side-effect import
+from nagara.config import settings
 
 config = context.config
 
