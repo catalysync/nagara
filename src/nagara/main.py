@@ -3,6 +3,9 @@
 Exposes two separate health endpoints so Kubernetes can distinguish between
 "is the process alive" (cheap) and "is it ready to serve" (DB reachable).
 
+The app is built with a lifespan that walks the registries in
+``nagara.lifespan``. Downstream apps (cloud) import this module, register
+hooks with ``@on_startup`` / ``@on_shutdown``, and serve ``app`` directly.
 The ``/health`` alias is retained so existing smoke tests and docker-compose
 healthchecks keep working.
 """
@@ -17,10 +20,15 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from nagara.config import settings
+from nagara.lifespan import (
+    _shutdown_hooks,
+    _startup_hooks,
+    build_lifespan,
+    on_shutdown,
+)
 
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title=settings.APP_NAME, version=settings.APP_VERSION)
 
 # Dedicated tiny engine for the readiness probe. Kept separate from the
 # application's request-serving pool so a slow check can't exhaust it.
@@ -29,6 +37,20 @@ _probe_engine = create_async_engine(
     pool_size=1,
     max_overflow=0,
     pool_pre_ping=False,
+)
+
+
+@on_shutdown
+async def _dispose_probe_engine(_app: FastAPI) -> None:
+    """Dispose the probe engine on app shutdown so connections are returned
+    cleanly rather than leaked to ``__del__``."""
+    await _probe_engine.dispose()
+
+
+app = FastAPI(
+    title=settings.APP_NAME,
+    version=settings.APP_VERSION,
+    lifespan=build_lifespan(_startup_hooks, _shutdown_hooks),
 )
 
 
