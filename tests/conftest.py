@@ -21,6 +21,7 @@ from nagara.db.session import build_engine, build_sessionmaker
 
 # Import every model module so its tables register on Base.metadata before
 # create_all runs. Add new domains here as they're introduced.
+from nagara.iam import membership as _iam_membership  # noqa: F401  — side-effect import
 from nagara.iam import model as _iam_model  # noqa: F401  — side-effect import
 from nagara.org import model as _org_model  # noqa: F401  — side-effect import
 from nagara.workspace import model as _workspace_model  # noqa: F401  — side-effect import

@@ -4,6 +4,7 @@ Membership and APIToken live alongside User/Group because they're all
 "principal" concepts and querying them together is common.
 """
 
+from nagara.iam.membership import Membership, Role
 from nagara.iam.model import Group, GroupMember, User
 
-__all__ = ["Group", "GroupMember", "User"]
+__all__ = ["Group", "GroupMember", "Membership", "Role", "User"]
