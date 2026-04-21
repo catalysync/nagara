@@ -38,6 +38,14 @@ htmlcov/
 # logs
 *.log
 
+# node / frontend
+node_modules/
+.next/
+out/
+coverage/
+*.tsbuildinfo
+next-env.d.ts
+
 # local agent/tooling state — never commit
 .claude/
 .aider*
