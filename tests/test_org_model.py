@@ -18,7 +18,6 @@ def test_org_table_columns_present():
         "name",
         "auth_provider",
         "auth_config",
-        "billing_status",
         "created_at",
         "updated_at",
         "deleted_at",
@@ -33,8 +32,10 @@ def test_org_slug_is_unique():
     assert slug_col.nullable is False
 
 
-def test_org_auth_provider_is_enum_with_three_choices():
-    assert {p.value for p in AuthProvider} == {"zitadel", "workos", "local"}
+def test_org_auth_provider_enum_is_vendor_neutral():
+    # Enum carries the protocol, not the vendor — providers like Zitadel,
+    # Keycloak, WorkOS, Okta all configure through 'oidc' or 'saml'.
+    assert {p.value for p in AuthProvider} == {"local", "oidc", "saml"}
 
 
 @pytest.mark.asyncio
@@ -47,7 +48,6 @@ async def test_org_can_be_inserted_with_minimal_fields(session: AsyncSession):
     assert org.created_at is not None
     assert org.auth_provider == AuthProvider.local
     assert org.auth_config == {}
-    assert org.billing_status == "trial"
     assert org.deleted_at is None
 
 

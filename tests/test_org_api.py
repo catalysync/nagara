@@ -18,7 +18,6 @@ async def test_create_org_returns_201_with_org(api_client: tuple[AsyncClient, An
     assert body["slug"] == "acme"
     assert body["name"] == "Acme Inc"
     assert body["auth_provider"] == "local"
-    assert body["billing_status"] == "trial"
     assert "id" in body
 
 
@@ -39,16 +38,24 @@ async def test_create_org_validates_required_fields(api_client: tuple[AsyncClien
     assert res.status_code == 422
 
 
-# Sanity: an explicit non-local auth provider is accepted.
+# Sanity: explicit OIDC / SAML protocols accepted (specific vendors configure
+# through auth_config jsonb, not through the enum).
 @pytest.mark.asyncio
-async def test_create_org_with_zitadel_provider(api_client: tuple[AsyncClient, Any]):
+async def test_create_org_with_oidc_protocol(api_client: tuple[AsyncClient, Any]):
     client, _ = api_client
     res = await client.post(
         "/orgs",
-        json={"slug": "z", "name": "Z", "auth_provider": "zitadel"},
+        json={
+            "slug": "z",
+            "name": "Z",
+            "auth_provider": "oidc",
+            "auth_config": {"issuer": "https://zitadel.example", "client_id": "abc"},
+        },
     )
     assert res.status_code == 201
-    assert res.json()["auth_provider"] == "zitadel"
+    body = res.json()
+    assert body["auth_provider"] == "oidc"
+    assert body["auth_config"]["issuer"] == "https://zitadel.example"
 
 
 @pytest_asyncio.fixture

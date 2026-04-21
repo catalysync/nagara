@@ -12,16 +12,18 @@ from nagara.db import Base, SoftDeleteMixin, TimestampedMixin, UUIDPrimaryKeyMix
 
 
 class AuthProvider(StrEnum):
-    """How an Org authenticates its users.
+    """Which auth protocol an Org uses.
 
-    ``local``  — username/password handled by the app itself.
-    ``zitadel`` — self-hosted or hosted Zitadel cluster (OIDC/OAuth).
-    ``workos`` — WorkOS-managed SSO (SAML, OIDC, magic link).
+    The enum carries the *protocol*, not a vendor name — specific IdPs
+    (Zitadel, Keycloak, WorkOS, Okta, Auth0, …) are configured through
+    ``oidc`` or ``saml`` with the provider-specific details living in
+    ``Org.auth_config`` (jsonb). Keeps the public surface vendor-neutral so
+    new providers don't require core changes.
     """
 
     local = "local"
-    zitadel = "zitadel"
-    workos = "workos"
+    oidc = "oidc"
+    saml = "saml"
 
 
 class Org(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Base):
@@ -40,9 +42,4 @@ class Org(UUIDPrimaryKeyMixin, TimestampedMixin, SoftDeleteMixin, Base):
         JSON,
         nullable=False,
         default=dict,
-    )
-    billing_status: Mapped[str] = mapped_column(
-        String(32),
-        nullable=False,
-        default="trial",
     )

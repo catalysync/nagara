@@ -1,8 +1,8 @@
-"""initial schema
+"""core initial schema
 
-Revision ID: 19574c9d1dff
+Revision ID: cd73027bb14d
 Revises:
-Create Date: 2026-04-21 01:04:16.653886
+Create Date: 2026-04-21 11:14:08.752724
 
 """
 
@@ -14,9 +14,12 @@ from sqlalchemy.dialects import postgresql
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = "19574c9d1dff"
+# ``branch_labels = ("core",)`` so the private cloud migration chain (in a
+# separate repo, under its own version-locations) can set
+# ``depends_on = "core@head"`` without pinning a specific revision hash.
+revision: str = "cd73027bb14d"
 down_revision: str | Sequence[str] | None = None
-branch_labels: str | Sequence[str] | None = None
+branch_labels: str | Sequence[str] | None = ("core",)
 depends_on: str | Sequence[str] | None = None
 
 
@@ -29,7 +32,6 @@ def upgrade() -> None:
         sa.Column("name", sa.String(length=255), nullable=False),
         sa.Column("auth_provider", sa.String(length=32), nullable=False),
         sa.Column("auth_config", sa.JSON(), nullable=False),
-        sa.Column("billing_status", sa.String(length=32), nullable=False),
         sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column(
             "created_at",

@@ -25,4 +25,3 @@ class OrgRead(BaseModel):
     name: str
     auth_provider: AuthProvider
     auth_config: dict[str, Any]
-    billing_status: str
