@@ -1,0 +1,13 @@
+apiVersion: v2
+name: nagara-core
+description: Nagara core platform — the open-source data platform API.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+kubeVersion: ">=1.27.0-0"
+keywords:
+  - data-platform
+  - fastapi
+  - postgres
+maintainers:
+  - name: catalysync
