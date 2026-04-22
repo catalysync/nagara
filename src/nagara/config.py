@@ -112,7 +112,7 @@ class TomlLayeredSource(PydanticBaseSettingsSource):
 
     def get_field_value(
         self,
-        field: FieldInfo,
+        field: FieldInfo,  # noqa: ARG002 — required by PydanticBaseSettingsSource ABC
         field_name: str,
     ) -> tuple[Any, str, bool]:
         data = self._load_raw()
