@@ -35,6 +35,18 @@ service:
   type: ClusterIP
   port: 8000
 
+# ── Graceful shutdown ──────────────────────────────────────────────────────
+# How long k8s waits after sending SIGTERM before sending SIGKILL. The preStop
+# sleep counts against this, so effective cleanup time = this minus preStopSleep.
+# See docs/graceful-shutdown.md and `nagara-planning/10-graceful-shutdown.md`.
+terminationGracePeriodSeconds: 30
+
+lifecycle:
+  # Seconds to sleep in preStop, giving kube-proxy time to stop routing
+  # traffic to this pod before uvicorn gets SIGTERM. Prevents 502s on the
+  # clients during rolling deploys.
+  preStopSleep: 5
+
 # ── Health probes ───────────────────────────────────────────────────────────
 # Liveness is cheap. Readiness hits the DB (503 during outages → k8s pulls
 # the pod out of the Service endpoint set without killing it).
