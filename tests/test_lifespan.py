@@ -1,4 +1,4 @@
-"""Lifespan hooks — core exposes a registry cloud can plug startup/shutdown into."""
+"""Lifespan hooks — core exposes a registry for downstream apps to plug startup/shutdown into."""
 
 from __future__ import annotations
 

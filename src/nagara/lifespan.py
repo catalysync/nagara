@@ -1,30 +1,31 @@
 """FastAPI lifespan registry.
 
-Core emits startup/shutdown callbacks through a global registry. Code that
-lives outside core — most importantly the private cloud app — registers
-itself with ``@on_startup`` / ``@on_shutdown`` to plug in its
-:class:`FeatureResolver`, event subscribers, Stripe client, background
-workers, etc.
+Core emits startup/shutdown callbacks through a global registry. Downstream
+code that composes this package — an internal deployment, a third-party
+wrapper, an integration layer — registers itself with ``@on_startup`` /
+``@on_shutdown`` to plug in its :class:`FeatureResolver`, event subscribers,
+external clients, background workers, and so on.
 
 ``nagara.main`` builds the app's lifespan context from the current contents
-of these registries. Cloud does *not* build its own app — it imports
-``nagara.main:app`` and registers hooks before the app starts serving.
+of these registries. Downstream consumers typically import ``nagara.main:app``
+and register hooks before the app starts serving rather than building their
+own app.
 
-Example (cloud)::
+Example::
 
-    # nagara_cloud/__init__.py — imported before the app starts
+    # downstream/__init__.py — imported before the app starts
     from nagara.lifespan import on_startup, on_shutdown
     from nagara.events import get_bus, WorkspaceCreated
     from nagara.features import set_resolver
 
     @on_startup
-    async def wire_cloud(_app):
-        set_resolver(CloudResolver())
-        get_bus().subscribe(WorkspaceCreated, provision_compute)
+    async def wire(_app):
+        set_resolver(MyResolver())
+        get_bus().subscribe(WorkspaceCreated, my_handler)
 
     @on_shutdown
     async def drain(_app):
-        await stripe_client.aclose()
+        await my_client.aclose()
 """
 
 from __future__ import annotations
@@ -37,9 +38,9 @@ from fastapi import FastAPI
 LifespanHook = Callable[[FastAPI], Awaitable[None]]
 
 
-# Module-global lists so decorators can register at import time. Cloud imports
-# core first, then registers its hooks; core's main module reads these when it
-# builds the app's lifespan.
+# Module-global lists so decorators can register at import time. Downstream
+# consumers import core first, then register their hooks; core's main module
+# reads these when it builds the app's lifespan.
 _startup_hooks: list[LifespanHook] = []
 _shutdown_hooks: list[LifespanHook] = []
 
