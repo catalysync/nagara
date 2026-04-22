@@ -23,10 +23,15 @@ from collections.abc import Iterator
 from contextvars import ContextVar
 from datetime import timedelta
 from enum import StrEnum
+from pathlib import Path
 from typing import Any, Literal
 
 from pydantic import AliasChoices, Field, PostgresDsn, SecretStr
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic.fields import FieldInfo
+from pydantic_settings import BaseSettings, PydanticBaseSettingsSource, SettingsConfigDict
+
+from nagara.layered import deep_merge, load_pyproject_config, load_toml_config
+from nagara.profiles import load_profiles
 
 
 class Environment(StrEnum):
@@ -41,6 +46,94 @@ _env_file = {
     Environment.test: ".env.test",
     Environment.staging: ".env.staging",
 }.get(_env, ".env")
+
+
+# ── Layered TOML source ────────────────────────────────────────────────────
+# Merges three optional files into one source tier that sits below env/.env
+# but above field defaults:
+#
+#   pyproject.toml     [tool.nagara]                    — committed, repo-wide
+#   user config.toml   ~/.config/nagara/config.toml     — per-operator
+#   profiles.toml      ~/.config/nagara/profiles.toml   — named profiles
+#
+# The active profile is chosen by (1) $NAGARA_PROFILE, (2) ``active = "..."``
+# inside profiles.toml, otherwise no profile overrides apply. Env-var hooks
+# (``NAGARA_PYPROJECT``, ``NAGARA_USER_CONFIG``, ``NAGARA_PROFILES``) let
+# tests + deployments retarget the discovery paths without a file rename.
+
+
+def _pyproject_path() -> Path:
+    return Path(os.environ.get("NAGARA_PYPROJECT", "pyproject.toml"))
+
+
+def _user_config_path() -> Path:
+    override = os.environ.get("NAGARA_USER_CONFIG")
+    if override:
+        return Path(override)
+    return Path.home() / ".config" / "nagara" / "config.toml"
+
+
+def _profiles_path() -> Path:
+    override = os.environ.get("NAGARA_PROFILES")
+    if override:
+        return Path(override)
+    return Path.home() / ".config" / "nagara" / "profiles.toml"
+
+
+class TomlLayeredSource(PydanticBaseSettingsSource):
+    """pydantic-settings source that merges pyproject + user + profile TOML.
+
+    Priority inside this source (highest wins):
+        active profile section > user config.toml > pyproject [tool.nagara]
+
+    The merged dict feeds into :class:`Settings` below env vars and .env
+    files, so a value in ``NAGARA_POSTGRES_HOST`` still beats a value in
+    ``config.toml``.
+    """
+
+    def _load_raw(self) -> dict[str, Any]:
+        merged: dict[str, Any] = {}
+        merged = deep_merge(merged, load_pyproject_config(_pyproject_path()))
+        merged = deep_merge(merged, load_toml_config(_user_config_path()))
+
+        store = load_profiles(_profiles_path())
+        active = os.environ.get("NAGARA_PROFILE") or store.active
+        if active is not None:
+            try:
+                profile = store.get(active)
+            except KeyError:
+                profile = None
+            if profile is not None:
+                merged = deep_merge(merged, profile.overrides)
+
+        # Lowercase the keys so case-insensitive matching against field names
+        # works regardless of how TOML authors capitalize them.
+        return {k.lower(): v for k, v in merged.items()}
+
+    def get_field_value(
+        self,
+        field: FieldInfo,
+        field_name: str,
+    ) -> tuple[Any, str, bool]:
+        data = self._load_raw()
+        value = data.get(field_name.lower())
+        return (
+            value,
+            field_name,
+            value is not None and not isinstance(value, str | int | float | bool),
+        )
+
+    def __call__(self) -> dict[str, Any]:
+        # Return a dict keyed by the exact field names so pydantic-settings
+        # merges it cleanly with the other sources. Missing fields are
+        # simply absent (falls through to lower-priority sources or default).
+        raw = self._load_raw()
+        out: dict[str, Any] = {}
+        for field_name in self.settings_cls.model_fields:
+            lower = field_name.lower()
+            if lower in raw:
+                out[field_name] = raw[lower]
+        return out
 
 
 class Settings(BaseSettings):
@@ -87,6 +180,26 @@ class Settings(BaseSettings):
         case_sensitive=False,
         extra="ignore",
     )
+
+    @classmethod
+    def settings_customise_sources(
+        cls,
+        settings_cls: type[BaseSettings],
+        init_settings: PydanticBaseSettingsSource,
+        env_settings: PydanticBaseSettingsSource,
+        dotenv_settings: PydanticBaseSettingsSource,
+        file_secret_settings: PydanticBaseSettingsSource,
+    ) -> tuple[PydanticBaseSettingsSource, ...]:
+        # Highest priority first. The TOML layer sits below env + .env so a
+        # deployment env var still wins, but above file-secret defaults so
+        # an operator TOML config is respected.
+        return (
+            init_settings,
+            env_settings,
+            dotenv_settings,
+            TomlLayeredSource(settings_cls),
+            file_secret_settings,
+        )
 
     # ── Helpers ─────────────────────────────────────────────────────────
     def is_environment(self, envs: set[Environment]) -> bool:
