@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator
 
+from fastapi import FastAPI
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -18,6 +19,7 @@ from sqlalchemy.ext.asyncio import (
 )
 
 from nagara.config import settings
+from nagara.lifespan import on_shutdown
 
 
 def build_engine(url: str, **kwargs: object) -> AsyncEngine:
@@ -37,6 +39,13 @@ engine: AsyncEngine = build_engine(
     pool_recycle=settings.DATABASE_POOL_RECYCLE_SECONDS,
 )
 async_session: async_sessionmaker[AsyncSession] = build_sessionmaker(engine)
+
+
+@on_shutdown
+async def _dispose_engine(_app: FastAPI) -> None:
+    """Return pooled connections cleanly on shutdown so Postgres doesn't log
+    abrupt client disconnects and in-flight requests don't drop mid-query."""
+    await engine.dispose()
 
 
 async def get_session() -> AsyncIterator[AsyncSession]:
