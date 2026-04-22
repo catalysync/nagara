@@ -4,9 +4,9 @@ Exposes two separate health endpoints so Kubernetes can distinguish between
 "is the process alive" (cheap) and "is it ready to serve" (DB reachable).
 
 The app is built with a lifespan that walks the registries in
-``nagara.lifespan``. Downstream apps (cloud) import this module, register
-hooks with ``@on_startup`` / ``@on_shutdown``, and serve ``app`` directly.
-The ``/health`` alias is retained so existing smoke tests and docker-compose
+``nagara.lifespan``. Downstream apps import this module, register hooks
+with ``@on_startup`` / ``@on_shutdown``, and serve ``app`` directly. The
+``/health`` alias is retained so existing smoke tests and docker-compose
 healthchecks keep working.
 """
 
