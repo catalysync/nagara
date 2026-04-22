@@ -53,6 +53,14 @@ test-integration:
 generate-client:
     ./scripts/generate-client.sh
 
+# Print every Settings field + default as TOML. Pipe to a file for a starting config.
+config-dump:
+    uv run python scripts/config-dump.py
+
+# Rewrite docs/config-reference.md from the Settings model.
+config-docs:
+    uv run python scripts/generate-config-docs.py
+
 # All checks — what CI runs. Run before pushing.
 check:
     uv run ruff format --check
