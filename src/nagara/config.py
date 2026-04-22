@@ -26,12 +26,14 @@ from enum import StrEnum
 from pathlib import Path
 from typing import Any, Literal
 
-from pydantic import AliasChoices, Field, PostgresDsn, SecretStr
+from pydantic import AliasChoices, Field, PostgresDsn, SecretStr, field_validator
 from pydantic.fields import FieldInfo
 from pydantic_settings import BaseSettings, PydanticBaseSettingsSource, SettingsConfigDict
 
 from nagara.layered import deep_merge, load_pyproject_config, load_toml_config
 from nagara.profiles import load_profiles
+
+LogLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 
 
 class Environment(StrEnum):
@@ -138,40 +140,111 @@ class TomlLayeredSource(PydanticBaseSettingsSource):
 
 class Settings(BaseSettings):
     # ── App ─────────────────────────────────────────────────────────────
-    ENV: Environment = Environment.development
-    APP_NAME: str = "nagara"
-    APP_VERSION: str = "0.1.0"
-    LOG_LEVEL: str = "INFO"
-    TESTING: bool = False
+    ENV: Environment = Field(
+        default=Environment.development,
+        description="Deployment environment. Drives .env file selection and prod-only guardrails.",
+    )
+    APP_NAME: str = Field(default="nagara", description="Display name in API docs, logs, metrics.")
+    APP_VERSION: str = Field(
+        default="0.1.0", description="Version string surfaced in /openapi.json."
+    )
+    LOG_LEVEL: LogLevel | None = Field(
+        default=None,
+        description=(
+            "Python logging level. When unset, derived from ENV: DEBUG in development, "
+            "INFO everywhere else."
+        ),
+    )
+    TESTING: bool = Field(default=False, description="Test-only flag. Don't set in production.")
 
     # ── Security ────────────────────────────────────────────────────────
-    # Empty-by-default so verify_settings() can enforce it's set in prod.
-    SECRET_KEY: SecretStr = SecretStr("")
+    SECRET_KEY: SecretStr = Field(
+        default=SecretStr(""),
+        description="Signs JWTs + session cookies. Must be set in production (≥32 chars).",
+    )
 
     # ── HTTP ────────────────────────────────────────────────────────────
-    BASE_URL: str = "http://127.0.0.1:8000"
-    FRONTEND_BASE_URL: str = "http://127.0.0.1:3000"
-    CORS_ORIGINS: list[str] = []
+    BASE_URL: str = Field(
+        default="http://127.0.0.1:8000",
+        description="Public backend URL — used when building absolute links in emails, webhooks.",
+    )
+    FRONTEND_BASE_URL: str = Field(
+        default="http://127.0.0.1:3000",
+        description="Public frontend URL — used for post-auth redirects.",
+    )
+    CORS_ORIGINS: list[str] = Field(
+        default_factory=list,
+        description="Allowed CORS origins. Empty list disables cross-origin requests.",
+    )
 
     # ── Sessions ────────────────────────────────────────────────────────
-    USER_SESSION_TTL: timedelta = timedelta(days=31)
+    USER_SESSION_TTL: timedelta = Field(
+        default=timedelta(days=31),
+        description="How long a user session lasts before forcing re-auth.",
+    )
 
     # ── Database ────────────────────────────────────────────────────────
-    # Full-URL override. When set, wins over POSTGRES_* parts. Accepts the
-    # unprefixed ``DATABASE_URL`` env var too, so operators with an existing
-    # Heroku/Render/Supabase URL don't have to rename anything.
     DATABASE_URL: str | None = Field(
         default=None,
         validation_alias=AliasChoices("NAGARA_DATABASE_URL", "DATABASE_URL"),
+        description=(
+            "Full DSN override. When set, wins over POSTGRES_* parts. Accepts the "
+            "unprefixed DATABASE_URL env var too."
+        ),
     )
-    POSTGRES_USER: str = "nagara"
-    POSTGRES_PWD: SecretStr = SecretStr("nagara")
-    POSTGRES_HOST: str = "127.0.0.1"
-    POSTGRES_PORT: int = 5432
-    POSTGRES_DB: str = "nagara"
-    DATABASE_POOL_SIZE: int = 5
-    DATABASE_POOL_RECYCLE_SECONDS: int = 600
-    DATABASE_COMMAND_TIMEOUT_SECONDS: float = 30.0
+    POSTGRES_USER: str = Field(default="nagara", description="Postgres username.")
+    POSTGRES_PWD: SecretStr = Field(default=SecretStr("nagara"), description="Postgres password.")
+    POSTGRES_HOST: str = Field(default="127.0.0.1", description="Postgres host.")
+    POSTGRES_PORT: int = Field(
+        default=5432,
+        ge=1,
+        le=65535,
+        description="Postgres port. Must be a valid TCP port.",
+    )
+    POSTGRES_DB: str = Field(default="nagara", description="Postgres database name.")
+    DATABASE_POOL_SIZE: int = Field(
+        default=5,
+        ge=1,
+        le=500,
+        description="SQLAlchemy connection pool size. Tune per replica.",
+    )
+    DATABASE_POOL_RECYCLE_SECONDS: int = Field(
+        default=600,
+        ge=1,
+        description="Seconds before a pooled connection is recycled. Guards against stale conns.",
+    )
+    DATABASE_COMMAND_TIMEOUT_SECONDS: float = Field(
+        default=30.0,
+        gt=0,
+        description="Per-query timeout. 0 is not a valid value — prevents runaway queries.",
+    )
+
+    # ── Validators ─────────────────────────────────────────────────────
+    @field_validator("LOG_LEVEL", mode="after")
+    @classmethod
+    def _default_log_level_from_env(cls, v: str | None, info) -> str:  # noqa: ANN001
+        """Fill ``LOG_LEVEL`` when unset: DEBUG in development, INFO otherwise."""
+        if v is not None:
+            return v
+        env = info.data.get("ENV", Environment.development)
+        return "DEBUG" if env == Environment.development else "INFO"
+
+    # Template for future deprecations — when a setting is renamed, keep a
+    # validator on the new name that watches for the old env var and emits a
+    # warning. Example (commented, no active deprecation right now)::
+    #
+    #     @field_validator("POSTGRES_PWD", mode="before")
+    #     @classmethod
+    #     def _warn_old_db_password(cls, v):
+    #         if os.environ.get("NAGARA_DB_PASSWORD") is not None:
+    #             import warnings
+    #             warnings.warn(
+    #                 "NAGARA_DB_PASSWORD is deprecated — rename to NAGARA_POSTGRES_PWD",
+    #                 DeprecationWarning,
+    #                 stacklevel=2,
+    #             )
+    #             return os.environ["NAGARA_DB_PASSWORD"]
+    #         return v
 
     model_config = SettingsConfigDict(
         env_prefix="nagara_",
@@ -179,6 +252,13 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",
+        # Read Docker / k8s mounted secrets (``/run/secrets/NAGARA_SECRET_KEY``,
+        # ``/run/secrets/NAGARA_POSTGRES_PWD``, ...). Pydantic-settings warns
+        # if the dir doesn't exist, so we only wire it up when it does.
+        secrets_dir=(
+            os.environ.get("NAGARA_SECRETS_DIR")
+            or ("/run/secrets" if Path("/run/secrets").is_dir() else None)
+        ),
     )
 
     @classmethod
