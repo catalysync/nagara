@@ -1,9 +1,9 @@
 @import "tailwindcss";
 
-/* Mizu design tokens (--mizu-* custom properties) */
+/* Design tokens exported by the shared component library as CSS variables. */
 @import "@aspect/tokens/css";
 
-/* Mizu component CSS (.mizu-button, .mizu-popover, etc.) */
+/* Component CSS for the shared library. */
 @import "@aspect/css";
 
 /* Dark mode semantic overrides — applies when <html data-theme="dark"> is set */
@@ -14,7 +14,7 @@ html[data-theme="dark"] {
 }
 
 @theme inline {
-  /* Surfaces & text — bridge mizu semantic tokens to Tailwind's theme keys */
+  /* Surfaces & text — bridge the imported semantic tokens to Tailwind's theme keys */
   --color-background: var(--mizu-surface-default);
   --color-foreground: var(--mizu-text-primary);
   --color-muted: var(--mizu-surface-secondary);
