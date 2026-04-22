@@ -71,7 +71,6 @@ class Environment(UUIDPrimaryKeyMixin, TimestampedMixin, Base):
             "workspace_id",
             unique=True,
             postgresql_where=text("is_default"),
-            sqlite_where=text("is_default"),
         ),
     )
 

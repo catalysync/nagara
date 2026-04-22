@@ -3,9 +3,6 @@
 Append-only by convention. Every authn/authz check, data read, mutation,
 membership change, and admin action should emit one event with a
 ``request_id`` correlating it to the originating HTTP request.
-
-``ip_address`` uses ``inet`` on Postgres and degrades to ``String`` elsewhere
-so the test/sqlite path stays identical.
 """
 
 from __future__ import annotations
@@ -56,10 +53,7 @@ class AuditEvent(UUIDPrimaryKeyMixin, Base):
     resource_id: Mapped[UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True)
     decision: Mapped[AuditDecision] = mapped_column(String(8), nullable=False)
     reason: Mapped[str | None] = mapped_column(Text, nullable=True)
-    ip_address: Mapped[str | None] = mapped_column(
-        INET().with_variant(String(45), "sqlite"),
-        nullable=True,
-    )
+    ip_address: Mapped[str | None] = mapped_column(INET(), nullable=True)
     user_agent: Mapped[str | None] = mapped_column(Text, nullable=True)
     request_id: Mapped[UUID | None] = mapped_column(Uuid(as_uuid=True), nullable=True, index=True)
     occurred_at: Mapped[datetime] = mapped_column(
