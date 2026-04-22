@@ -1,8 +1,9 @@
 """Domain events + in-process event bus.
 
-Core emits typed events after successful writes. Cloud (or any other
-subscriber living in the same process) registers handlers at startup and
-reacts — billing meters, provisioning, audit enrichment, notifications.
+Core emits typed events after successful writes. Any subscriber living in
+the same process — a downstream app's startup hook, a plugin, an internal
+worker — registers handlers at startup and reacts (audit enrichment,
+external integrations, notifications, provisioning, metering, …).
 
 The bus is deliberately simple: Python-only, no queue, no persistence. When
 durable fan-out is needed, swap the :class:`EventBus` implementation behind
@@ -12,7 +13,7 @@ Usage::
 
     from nagara.events import get_bus, WorkspaceCreated
 
-    # core/workspace/api.py — emit
+    # emit site inside a domain endpoint
     await get_bus().emit(WorkspaceCreated(
         occurred_at=datetime.now(UTC),
         org_id=ws.org_id,
@@ -21,9 +22,9 @@ Usage::
         created_by=ws.created_by,
     ))
 
-    # nagara-cloud startup — subscribe
-    get_bus().subscribe(WorkspaceCreated, provision_compute)
-    get_bus().subscribe(WorkspaceCreated, emit_billing_event)
+    # downstream startup — subscribe
+    get_bus().subscribe(WorkspaceCreated, my_handler)
+    get_bus().subscribe(WorkspaceCreated, another_handler)
 """
 
 from __future__ import annotations

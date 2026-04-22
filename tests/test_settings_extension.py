@@ -1,19 +1,19 @@
-"""Cloud extends core's :class:`Settings` by subclassing it — proven here.
+"""Downstream apps extend :class:`Settings` by subclassing — proven here.
 
 The pattern: core ships ``nagara.config.Settings`` with every knob the
-platform itself needs. The private cloud repo defines::
+platform itself needs. A downstream app defines::
 
-    class CloudSettings(Settings):
-        STRIPE_SECRET_KEY: SecretStr = SecretStr("")
-        INFISICAL_TOKEN: SecretStr = SecretStr("")
+    class ExtendedSettings(Settings):
+        INTEGRATION_API_KEY: SecretStr = SecretStr("")
+        VAULT_TOKEN: SecretStr = SecretStr("")
         ...
 
 and instantiates its own singleton. ``Settings.model_config`` inherits so
-the ``NAGARA_`` env prefix still applies — cloud-specific env vars can use
-the same prefix or the subclass can override ``env_prefix``.
+the ``NAGARA_`` env prefix still applies — the subclass can keep the same
+prefix or override ``env_prefix`` for a separate namespace.
 
-Tests walk this path end-to-end so a regression in pydantic-settings
-inheritance behavior breaks our tests, not cloud.
+These tests walk the pattern end-to-end so a regression in pydantic-settings
+inheritance behavior fails here, not in a downstream codebase.
 """
 
 from __future__ import annotations
@@ -27,41 +27,41 @@ from pydantic_settings import SettingsConfigDict
 from nagara.config import Environment, Settings
 
 
-def test_cloud_can_subclass_settings_and_add_fields():
-    class CloudSettings(Settings):
-        STRIPE_SECRET_KEY: SecretStr = SecretStr("")
-        INFISICAL_TOKEN: SecretStr = SecretStr("")
+def test_subclass_can_add_fields():
+    class ExtendedSettings(Settings):
+        INTEGRATION_API_KEY: SecretStr = SecretStr("")
+        VAULT_TOKEN: SecretStr = SecretStr("")
 
-    with patch.dict(os.environ, {"NAGARA_STRIPE_SECRET_KEY": "sk_test_abc"}, clear=False):
-        s = CloudSettings()
-    assert s.STRIPE_SECRET_KEY.get_secret_value() == "sk_test_abc"
+    with patch.dict(os.environ, {"NAGARA_INTEGRATION_API_KEY": "sk_test_abc"}, clear=False):
+        s = ExtendedSettings()
+    assert s.INTEGRATION_API_KEY.get_secret_value() == "sk_test_abc"
     # Core knobs still present — prefix and defaults inherited.
     assert s.APP_NAME == "nagara"
 
 
 def test_subclass_inherits_helper_methods():
-    class CloudSettings(Settings):
+    class ExtendedSettings(Settings):
         EXTRA: str = "x"
 
-    s = CloudSettings(ENV=Environment.production, SECRET_KEY=SecretStr("k" * 32))
+    s = ExtendedSettings(ENV=Environment.production, SECRET_KEY=SecretStr("k" * 32))
     assert s.is_production() is True
     assert "EXTRA" in s.safe_dump()
 
 
 def test_subclass_can_override_env_prefix_for_separate_namespace():
-    class CloudSettings(Settings):
-        STRIPE_SECRET_KEY: SecretStr = SecretStr("")
+    class ExtendedSettings(Settings):
+        INTEGRATION_API_KEY: SecretStr = SecretStr("")
 
         model_config = SettingsConfigDict(
-            env_prefix="nagara_cloud_",
+            env_prefix="downstream_",
             env_file=None,
             extra="ignore",
         )
 
     with patch.dict(
         os.environ,
-        {"NAGARA_CLOUD_STRIPE_SECRET_KEY": "sk_from_cloud_ns"},
+        {"DOWNSTREAM_INTEGRATION_API_KEY": "sk_from_downstream_ns"},
         clear=False,
     ):
-        s = CloudSettings()
-    assert s.STRIPE_SECRET_KEY.get_secret_value() == "sk_from_cloud_ns"
+        s = ExtendedSettings()
+    assert s.INTEGRATION_API_KEY.get_secret_value() == "sk_from_downstream_ns"

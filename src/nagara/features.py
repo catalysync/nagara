@@ -1,18 +1,20 @@
-"""FeatureResolver — core asks "can this happen?", cloud answers.
+"""FeatureResolver — core asks "can this happen?", a downstream app answers.
 
 Core endpoints call into a :class:`FeatureResolver` before acting on a
 request. OSS self-hosters get the :class:`PermissiveResolver` (everything
-allowed). The private cloud repo registers its own implementation at
-startup that checks subscription state, plan quotas, and rate limits.
+allowed). Any downstream app — an internal deployment, a hosted tier, a
+third-party wrapper — registers its own implementation at startup that
+checks whatever it needs (subscription state, per-tenant quotas, rate
+limits, feature flags).
 
 Adding a new check:
   1. Add an ``async def can_X(self, ...) -> FeatureCheck`` method here,
      with a permissive default implementation.
   2. Call it at the relevant endpoint: if ``not check.allowed`` → 403.
-  3. Cloud overrides the method in its subclass.
+  3. Downstream apps override the method in their subclass.
 
-No coordination between repos needed — cloud's subclass gets the new
-permissive default for free.
+Downstream apps get the new permissive default for free — no coordination
+needed across packages.
 """
 
 from __future__ import annotations
@@ -30,8 +32,8 @@ class FeatureCheck:
 
 
 class FeatureResolver:
-    """Default base + permissive implementation. Subclass in cloud and
-    override whichever checks need subscription/quota logic."""
+    """Default base + permissive implementation. Subclass and override
+    whichever checks need real logic; unoverridden methods stay permissive."""
 
     async def can_create_workspace(self, org_id: UUID) -> FeatureCheck:  # noqa: ARG002
         return FeatureCheck(allowed=True)
@@ -56,6 +58,6 @@ def get_resolver() -> FeatureResolver:
 
 
 def set_resolver(resolver: FeatureResolver) -> None:
-    """Replace the process-wide resolver. Cloud calls this at app startup."""
+    """Replace the process-wide resolver. Call at app startup, not per-request."""
     global _resolver
     _resolver = resolver

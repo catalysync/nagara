@@ -1,9 +1,9 @@
 """FeatureResolver gating + outbox emission on POST /workspaces.
 
-Exercises the extension seams core exposes to the private cloud repo.
-Events are staged on the durable outbox in the same transaction as the
-state change and drained by a separate worker — these tests walk that path
-end-to-end to prove the integration.
+Exercises the extension seams core exposes to downstream apps. Events are
+staged on the durable outbox in the same transaction as the state change
+and drained by a separate worker — these tests walk that path end-to-end
+to prove the integration.
 """
 
 from __future__ import annotations

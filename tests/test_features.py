@@ -1,4 +1,4 @@
-"""FeatureResolver — core's "can this happen?" check, swappable by cloud."""
+"""FeatureResolver — core's "can this happen?" check, swappable by downstream apps."""
 
 from __future__ import annotations
 

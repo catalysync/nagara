@@ -4,8 +4,8 @@ Core reads runtime secrets through this interface rather than straight from
 environment variables. The default backend *is* ``os.environ`` so OSS
 self-hosters get the same behavior as before — no change unless you opt in.
 
-Downstream callers (cloud, enterprise deployments, anyone with a vault)
-swap the default at startup::
+Downstream apps or operators with a secret manager swap the default at
+startup::
 
     from nagara.secret_backend import set_secret_backend
     from nagara.secret_backends.infisical import InfisicalSecretBackend
@@ -17,7 +17,7 @@ swap the default at startup::
     ))
 
 The Infisical backend is an *optional* extra (`pip install nagara[infisical]`).
-It's not imported from core — cloud picks it up at its own startup.
+It's not imported from core — downstream apps opt in at their own startup.
 """
 
 from __future__ import annotations

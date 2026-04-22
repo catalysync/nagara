@@ -1,8 +1,10 @@
 """Durable outbox for domain events.
 
 The in-process :class:`nagara.events.EventBus` loses events if the process
-crashes between ``session.commit()`` and ``bus.emit()``. For billing /
-metering / provisioning that's not acceptable. The outbox pattern fixes it:
+crashes between ``session.commit()`` and ``bus.emit()``. Anywhere a handler
+does work that must not be silently dropped on restart — external
+integrations, durable side-effects, audit enrichment — that's unacceptable.
+The outbox pattern fixes it:
 
 1. Endpoint code calls :func:`emit_outboxed(session, event)` — INSERTs a row
    into ``outbox_events`` *inside the same transaction* as the state change.
