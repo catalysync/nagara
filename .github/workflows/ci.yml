@@ -9,6 +9,29 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: nagara
+          POSTGRES_PASSWORD: nagara
+          POSTGRES_DB: nagara
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      NAGARA_POSTGRES_HOST: 127.0.0.1
+      NAGARA_POSTGRES_PORT: "5432"
+      NAGARA_POSTGRES_USER: nagara
+      NAGARA_POSTGRES_PWD: nagara
+      NAGARA_POSTGRES_DB: nagara
+
     steps:
       - uses: actions/checkout@v4
 

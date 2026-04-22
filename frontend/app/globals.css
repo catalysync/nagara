@@ -1,41 +1,10 @@
 @import "tailwindcss";
 
-/* Mizu design tokens (--mizu-* custom properties) */
-@import "@aspect/tokens/css";
-
-/* Mizu component CSS (.mizu-button, .mizu-popover, etc.) */
-@import "@aspect/css";
-
-/* Dark mode semantic overrides — applies when <html data-theme="dark"> is set */
-@import "@aspect/css/themes/dark";
-
-html[data-theme="dark"] {
-  color-scheme: dark;
-}
-
 @theme inline {
-  /* Surfaces & text — bridge mizu semantic tokens to Tailwind's theme keys */
-  --color-background: var(--mizu-surface-default);
-  --color-foreground: var(--mizu-text-primary);
-  --color-muted: var(--mizu-surface-secondary);
-  --color-muted-foreground: var(--mizu-text-secondary);
-
-  --color-border: var(--mizu-border-default);
-  --color-border-strong: var(--mizu-border-strong);
-
-  --color-primary: var(--mizu-action-primary-default);
-  --color-primary-hover: var(--mizu-action-primary-hover);
-  --color-primary-foreground: var(--mizu-color-white);
-
-  --color-destructive: var(--mizu-action-destructive-default);
-  --color-destructive-foreground: var(--mizu-color-white);
-
   --font-sans: "Inter", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
 }
 
 body {
-  background: var(--color-background);
-  color: var(--color-foreground);
   font-family: var(--font-sans);
 }

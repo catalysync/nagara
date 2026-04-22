@@ -41,9 +41,17 @@ lint:
 typecheck:
     uv run ty check
 
-# Run the tests.
+# Run the tests against the currently-configured Postgres (expects it running).
 test:
     uv run pytest
+
+# Bring up postgres + redis via compose, run the suite, tear down.
+test-integration:
+    ./scripts/test-integration.sh
+
+# Regenerate the TypeScript client from the backend's OpenAPI spec (no server needed).
+generate-client:
+    ./scripts/generate-client.sh
 
 # All checks — what CI runs. Run before pushing.
 check:
