@@ -24,6 +24,7 @@ spec:
       {{- end }}
     spec:
       serviceAccountName: {{ include "nagara-core.serviceAccountName" . }}
+      terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
@@ -72,6 +73,14 @@ spec:
             initialDelaySeconds: {{ .Values.probes.readiness.initialDelaySeconds }}
             periodSeconds: {{ .Values.probes.readiness.periodSeconds }}
             failureThreshold: {{ .Values.probes.readiness.failureThreshold }}
+          lifecycle:
+            # Give kube-proxy time to stop routing traffic to this pod before
+            # uvicorn catches SIGTERM. See nagara-planning/10-graceful-shutdown.md.
+            preStop:
+              exec:
+                command:
+                  - sleep
+                  - {{ .Values.lifecycle.preStopSleep | quote }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
           resources:
