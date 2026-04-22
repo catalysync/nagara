@@ -465,6 +465,7 @@ dependencies = [
     { name = "asyncpg" },
     { name = "email-validator" },
     { name = "fastapi" },
+    { name = "httpx" },
     { name = "psycopg2-binary" },
     { name = "pwdlib", extra = ["argon2"] },
     { name = "pydantic-settings" },
@@ -480,7 +481,6 @@ infisical = [
 
 [package.dev-dependencies]
 dev = [
-    { name = "httpx" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "ruff" },
@@ -493,6 +493,7 @@ requires-dist = [
     { name = "asyncpg", specifier = ">=0.31.0" },
     { name = "email-validator", specifier = ">=2.3.0" },
     { name = "fastapi", specifier = ">=0.136.0" },
+    { name = "httpx", specifier = ">=0.28.1" },
     { name = "infisicalsdk", marker = "extra == 'infisical'", specifier = ">=1.0.0" },
     { name = "psycopg2-binary", specifier = ">=2.9.12" },
     { name = "pwdlib", extras = ["argon2"], specifier = ">=0.3.0" },
@@ -505,7 +506,6 @@ provides-extras = ["infisical"]
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "httpx", specifier = ">=0.28.1" },
     { name = "pytest", specifier = ">=9.0.3" },
     { name = "pytest-asyncio", specifier = ">=1.3.0" },
     { name = "ruff", specifier = ">=0.15.11" },

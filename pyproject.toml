@@ -11,6 +11,7 @@ dependencies = [
     "asyncpg>=0.31.0",
     "email-validator>=2.3.0",
     "fastapi>=0.136.0",
+    "httpx>=0.28.1",
     "psycopg2-binary>=2.9.12",
     "pwdlib[argon2]>=0.3.0",
     "pydantic-settings>=2.14.0",
@@ -18,6 +19,9 @@ dependencies = [
     "sqlalchemy[asyncio]>=2.0.49",
     "uvicorn[standard]>=0.44.0",
 ]
+
+[project.scripts]
+nagara = "nagara.cli.main:main"
 
 [project.optional-dependencies]
 # Secret backends — install only the one(s) you use.
@@ -30,7 +34,6 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
-    "httpx>=0.28.1",
     "pytest>=9.0.3",
     "pytest-asyncio>=1.3.0",
     "ruff>=0.15.11",

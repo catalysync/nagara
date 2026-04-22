@@ -15,11 +15,12 @@ from datetime import UTC, datetime
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from nagara.cli import CLIRouter
 from nagara.db.session import get_session
 from nagara.events import MemberAdded, WorkspaceCreated
 from nagara.features import get_resolver
@@ -33,7 +34,7 @@ from nagara.workspace.schemas import (
     WorkspaceRead,
 )
 
-router = APIRouter(prefix="/workspaces", tags=["workspaces"])
+router = CLIRouter(prefix="/workspaces", tags=["workspaces"])
 
 SessionDep = Annotated[AsyncSession, Depends(get_session)]
 
@@ -80,7 +81,12 @@ async def create_workspace(payload: WorkspaceCreate, session: SessionDep) -> Wor
     return ws
 
 
-@router.get("", response_model=list[WorkspaceRead])
+@router.get(
+    "",
+    response_model=list[WorkspaceRead],
+    cli_command="workspace ls",
+    cli_summary="List workspaces in an org",
+)
 async def list_workspaces(
     session: SessionDep,
     org_id: Annotated[UUID, Query(description="Org to scope the listing to")],
