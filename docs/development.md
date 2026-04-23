@@ -113,7 +113,7 @@ See [deployment.md](./deployment.md) for the full deploy path.
 - Conventional Commit prefix (`feat:`, `fix:`, `chore:`, `docs:`, `refactor:`,
   `test:`, `perf:`, `ci:`, `build:`) is optional but strongly encouraged —
   `release-please` uses it to auto-generate release notes and bump versions
-- No AI-attribution footers (`Co-Authored-By: Claude …` etc)
+- No AI-attribution footers
 - No trailing period on the subject line
 
 Examples:
