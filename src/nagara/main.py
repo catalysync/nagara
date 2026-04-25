@@ -17,6 +17,7 @@ import logging
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from slowapi.errors import RateLimitExceeded
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
@@ -30,6 +31,7 @@ from nagara.lifespan import (
 )
 from nagara.logging import configure_logging
 from nagara.middleware import RequestIDMiddleware, request_id_var
+from nagara.rate_limit import limiter, rate_limit_exceeded_handler
 
 configure_logging()
 
@@ -58,6 +60,9 @@ app = FastAPI(
     version=settings.APP_VERSION,
     lifespan=build_lifespan(_startup_hooks, _shutdown_hooks),
 )
+
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
 
 app.add_middleware(RequestIDMiddleware)
 app.add_middleware(
