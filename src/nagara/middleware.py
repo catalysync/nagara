@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 import asyncio
+import re
 import uuid
+from collections.abc import Iterable
 from contextvars import ContextVar
+from urllib.parse import urlencode
 
 import structlog
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
@@ -103,3 +106,71 @@ class ContentSizeLimitMiddleware(BaseHTTPMiddleware):
                 "detail": f"request body exceeds {self._max} bytes",
             },
         )
+
+
+_BOUNDARY_RE = re.compile(r"^[\w\-]{1,70}$")
+
+
+class MultipartBoundaryMiddleware(BaseHTTPMiddleware):
+    """Validate ``Content-Type: multipart/form-data; boundary=...`` syntax
+    on configured paths before FastAPI's parser sees the body. Rejects
+    malformed boundaries with 422 — defends against a known
+    python-multipart hang-on-bad-boundary class of bug."""
+
+    def __init__(self, app: ASGIApp, *, paths: Iterable[str]) -> None:
+        super().__init__(app)
+        self._paths = tuple(paths)
+
+    async def dispatch(self, request: Request, call_next):  # type: ignore[override]
+        if not any(request.url.path.startswith(p) for p in self._paths):
+            return await call_next(request)
+        ct = request.headers.get("content-type", "")
+        if "multipart/form-data" not in ct or "boundary=" not in ct:
+            return self._reject("Content-Type must be multipart/form-data with a boundary")
+        boundary = ct.split("boundary=")[-1].strip().strip('"')
+        if not _BOUNDARY_RE.match(boundary):
+            return self._reject("invalid multipart boundary")
+        return await call_next(request)
+
+    def _reject(self, detail: str) -> JSONResponse:
+        return JSONResponse(
+            status_code=422,
+            content={"error": "invalid_multipart", "detail": detail},
+        )
+
+
+class ForwardedPrefixMiddleware(BaseHTTPMiddleware):
+    """Honour ``X-Forwarded-Prefix`` set by a reverse proxy. The prefix
+    is propagated into ASGI ``scope["root_path"]`` so URL builders
+    downstream emit absolute paths that include it (matters for SSE
+    callbacks, OAuth redirects, anything that handed-out URLs)."""
+
+    async def dispatch(self, request: Request, call_next):  # type: ignore[override]
+        prefix = request.headers.get("x-forwarded-prefix")
+        if prefix:
+            request.scope["root_path"] = prefix.rstrip("/")
+        return await call_next(request)
+
+
+class QueryListFlattenMiddleware(BaseHTTPMiddleware):
+    """Rewrite ``?ids=a,b,c`` → ``?ids=a&ids=b&ids=c`` for an explicit
+    set of keys so FastAPI's ``list[str]`` parsing accepts both styles.
+    Opt-in per key — never global — so a value with a literal comma
+    isn't unexpectedly split."""
+
+    def __init__(self, app: ASGIApp, *, keys: Iterable[str]) -> None:
+        super().__init__(app)
+        self._keys = frozenset(keys)
+
+    async def dispatch(self, request: Request, call_next):  # type: ignore[override]
+        flattened: list[tuple[str, str]] = []
+        changed = False
+        for key, value in request.query_params.multi_items():
+            if key in self._keys and "," in value:
+                flattened.extend((key, v) for v in value.split(",") if v)
+                changed = True
+            else:
+                flattened.append((key, value))
+        if changed:
+            request.scope["query_string"] = urlencode(flattened, doseq=True).encode()
+        return await call_next(request)
