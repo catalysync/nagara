@@ -21,7 +21,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from nagara.config import settings
-from nagara.exceptions import NagaraError
+from nagara.exceptions import NagaraError, ValidationFailed
 from nagara.lifespan import (
     _shutdown_hooks,
     _startup_hooks,
@@ -80,6 +80,8 @@ async def nagara_error_handler(request: Request, exc: NagaraError) -> JSONRespon
         "detail": exc.message,
         "request_id": rid,
     }
+    if isinstance(exc, ValidationFailed) and exc.errors:
+        body["errors"] = [e.model_dump() for e in exc.errors]
     if exc.extra:
         body["extra"] = exc.extra
     return JSONResponse(
