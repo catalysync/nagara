@@ -18,6 +18,14 @@ def _before_send(event: Event, hint: Hint) -> Event | None:
     tags = event.get("tags") or {}
     if tags.get("nagara_typed_error") == "true":
         return None
+    # Cross-reference Sentry events to structured logs by stamping the
+    # active request id (set by RequestIDMiddleware) onto every event.
+    from nagara.middleware import request_id_var
+    rid = request_id_var.get() or None
+    if rid:
+        tags = dict(tags)
+        tags["request_id"] = rid
+        event["tags"] = tags
     return event
 
 
