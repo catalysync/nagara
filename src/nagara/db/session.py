@@ -33,10 +33,16 @@ def build_sessionmaker(engine: AsyncEngine) -> async_sessionmaker[AsyncSession]:
 
 
 # ── Process-wide singletons ────────────────────────────────────────────────
+# ``application_name`` lands on every connection — visible in
+# ``pg_stat_activity`` so DBAs can immediately tell API traffic apart from
+# workers/scripts when debugging slow queries.
 engine: AsyncEngine = build_engine(
     settings.get_postgres_dsn("asyncpg"),
     pool_size=settings.DATABASE_POOL_SIZE,
     pool_recycle=settings.DATABASE_POOL_RECYCLE_SECONDS,
+    connect_args={
+        "server_settings": {"application_name": f"nagara.{settings.ENV.value}"}
+    },
 )
 async_session: async_sessionmaker[AsyncSession] = build_sessionmaker(engine)
 
@@ -51,7 +57,16 @@ async def _dispose_engine(_app: FastAPI) -> None:
 async def get_session() -> AsyncIterator[AsyncSession]:
     """FastAPI dependency that yields one ``AsyncSession`` per request.
 
-    Override in tests with ``app.dependency_overrides[get_session] = ...``.
+    Auto-commits on a clean return; rolls back on any raised exception.
+    Handlers don't have to remember ``await session.commit()`` — write
+    your mutations and let the dependency close the transaction. Override
+    in tests with ``app.dependency_overrides[get_session] = ...``.
     """
     async with async_session() as session:
-        yield session
+        try:
+            yield session
+        except Exception:
+            await session.rollback()
+            raise
+        else:
+            await session.commit()
