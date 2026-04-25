@@ -187,6 +187,19 @@ class Settings(BaseSettings):
             "Defaults to False — turn on only after you've audited that origins are explicit (no wildcard)."
         ),
     )
+    TRUST_PROXY: bool = Field(
+        default=False,
+        description=(
+            "Trust headers set by an upstream reverse proxy (X-Forwarded-Prefix, etc.). "
+            "Set True only when nagara is deployed behind a known proxy that strips these "
+            "headers from client requests."
+        ),
+    )
+    REQUEST_MAX_BYTES: int = Field(
+        default=10 * 1024 * 1024,
+        ge=1024,
+        description="Reject requests whose Content-Length exceeds this many bytes with 413.",
+    )
 
     # ── Sessions ────────────────────────────────────────────────────────
     USER_SESSION_TTL: timedelta = Field(
@@ -249,7 +262,7 @@ class Settings(BaseSettings):
     # ── Validators ─────────────────────────────────────────────────────
     @field_validator("LOG_LEVEL", mode="after")
     @classmethod
-    def _default_log_level_from_env(cls, v: str | None, info) -> str:  # noqa: ANN001
+    def _default_log_level_from_env(cls, v: LogLevel | None, info) -> LogLevel:  # noqa: ANN001
         """Fill ``LOG_LEVEL`` when unset: DEBUG in development, INFO otherwise."""
         if v is not None:
             return v

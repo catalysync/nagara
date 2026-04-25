@@ -25,7 +25,13 @@ from nagara.lifespan import (
     on_shutdown,
 )
 from nagara.logging import configure_logging
-from nagara.middleware import RequestIDMiddleware, request_id_var
+from nagara.middleware import (
+    ContentSizeLimitMiddleware,
+    ForwardedPrefixMiddleware,
+    RequestCancelledMiddleware,
+    RequestIDMiddleware,
+    request_id_var,
+)
 from nagara.rate_limit import limiter, rate_limit_exceeded_handler
 from nagara.sentry import configure_sentry, mark_typed_error
 
@@ -65,6 +71,10 @@ def create_app() -> FastAPI:
     app.state.limiter = limiter
     app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
 
+    if settings.TRUST_PROXY:
+        app.add_middleware(ForwardedPrefixMiddleware)
+    app.add_middleware(RequestCancelledMiddleware)
+    app.add_middleware(ContentSizeLimitMiddleware, max_bytes=settings.REQUEST_MAX_BYTES)
     app.add_middleware(RequestIDMiddleware)
     if settings.CORS_ALLOW_CREDENTIALS and "*" in settings.CORS_ORIGINS:
         raise RuntimeError(
