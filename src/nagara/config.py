@@ -223,6 +223,12 @@ class Settings(BaseSettings):
         description="Per-query timeout. 0 is not a valid value — prevents runaway queries.",
     )
 
+    # ── Redis ───────────────────────────────────────────────────────────
+    REDIS_URL: str = Field(
+        default="redis://127.0.0.1:6379/0",
+        description="Redis DSN. Used by the rate limiter and any future cache/queue.",
+    )
+
     # ── Validators ─────────────────────────────────────────────────────
     @field_validator("LOG_LEVEL", mode="after")
     @classmethod
