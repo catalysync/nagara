@@ -15,11 +15,6 @@ just dev                # API on http://127.0.0.1:8000
 Open `http://127.0.0.1:8000/docs` for the interactive OpenAPI playground,
 `/health/live` and `/health/ready` for the Kubernetes-ready probes.
 
-## Status
-
-Foundation PR — `feat/v0-infra`. Domain modules (auth, org, workspace,
-workbook, run, executor) ship on follow-up PRs and rebase onto this one.
-
 ## Stack
 
 - **Python 3.14** with [uv](https://github.com/astral-sh/uv) for env management

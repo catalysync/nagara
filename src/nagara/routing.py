@@ -2,10 +2,9 @@
 behavior. Import :class:`APIRouter` from here instead of FastAPI directly
 so every route picks up:
 
-  * Auto-commit of the SQLAlchemy session before the response is built
-    (defense-in-depth alongside the dep-level commit in
-    :func:`nagara.db.session.get_session`). Lets handlers safely return
-    raw ORM objects without a manual commit dance.
+  * Auto-commit of the first ``AsyncSession`` argument after the handler
+    returns, before FastAPI serializes the response. Idempotent if a
+    session dependency also commits — two commits is a no-op.
   * OpenAPI inclusion driven by ``APITag.public`` / ``APITag.internal``
     so internal admin endpoints never leak into the published spec.
 
@@ -37,13 +36,17 @@ class APITag(StrEnum):
 
 
 class AutoCommitAPIRoute(_FastAPIRoute):
-    """Commit any ``AsyncSession`` argument right after the endpoint
-    returns, before FastAPI serializes the response.
+    """Commit the first ``AsyncSession`` argument right after the endpoint
+    returns, before FastAPI serializes the response. If a handler takes
+    multiple sessions (read replica + write split), only the first is
+    committed here — the rest must be committed inside the handler or
+    via a downstream dependency.
 
-    Idempotent with the dep-level commit in :func:`get_session` — calling
-    ``commit()`` twice is a no-op. The wrapper is here so handlers can
-    return raw ORM objects whose attributes might lazy-load during
-    serialization without the session having been closed first.
+    The wrapper is here so handlers can return raw ORM objects whose
+    attributes might lazy-load during serialization without the session
+    having been closed first. Calling ``commit()`` twice is a no-op in
+    SQLAlchemy, so this composes safely with a session dep that also
+    commits.
     """
 
     def __init__(self, path: str, endpoint: Callable[..., Any], **kwargs: Any) -> None:

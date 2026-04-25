@@ -91,19 +91,21 @@ class OrgRepository(
 
 ## Session — never call `session.commit()` in service code
 
-`get_session` is auto-commit-on-success / rollback-on-exception. The
-custom `APIRoute` (in `nagara.routing`) commits before response
-serialization as defense-in-depth. So:
+The custom `APIRoute` in `nagara.routing` commits the first
+`AsyncSession` argument after the handler returns. Each domain wires its
+own `get_session` dep that should also commit on success / roll back on
+exception (idempotent — two commits is a no-op in SQLAlchemy).
 
 ```python
-async def create(self, session: AsyncSession, payload: CreateOrg) -> Org:
-    repo = OrgRepository.from_session(session)
-    return await repo.create(Org(**payload.model_dump()))
-    # NO session.commit() — happens automatically
+async def create(self, session: AsyncSession, payload) -> Resource:
+    repo = ResourceRepository.from_session(session)
+    return await repo.create(Resource(**payload.model_dump()))
+    # NO session.commit() — happens automatically via the route wrapper
+    # (and the dep, if your domain wires one)
 ```
 
-Use `await session.flush()` if you need the row's generated id before the
-request ends.
+Use `await session.flush()` if you need the row's generated id before
+the response goes out.
 
 ## Endpoint pattern
 
@@ -180,13 +182,14 @@ through the same pipeline.
 
 ## Tests
 
-Tests live in `tests/` with the per-worker DB pattern (still being wired
-on `feat/initial-data-model`). Pytest fixtures wrap every test in a
-transaction that rolls back at teardown — no manual cleanup needed.
+Tests live in `tests/` with the per-worker DB pattern. Pytest fixtures
+wrap every test in a transaction that rolls back at teardown — no
+manual cleanup needed.
 
 ```bash
-just test                   # full suite
-uv run pytest tests/test_org_api.py::test_create  # one test
+just test                       # full suite
+just coverage                   # branch coverage report
+uv run pytest tests/test_<module>.py -k <name>  # one test
 ```
 
 ## Adding a new domain module
