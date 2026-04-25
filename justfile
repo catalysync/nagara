@@ -45,6 +45,10 @@ typecheck:
 test:
     uv run pytest
 
+# Run the suite with branch coverage; HTML at htmlcov/index.html.
+coverage:
+    uv run pytest --cov --cov-report=term-missing --cov-report=html
+
 # Bring up postgres + redis via compose, run the suite, tear down.
 test-integration:
     ./scripts/test-integration.sh

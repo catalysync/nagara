@@ -26,10 +26,27 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
+    "coverage[toml]>=7.6.0",
     "httpx>=0.28.1",
     "pytest>=9.0.3",
+    "pytest-cov>=6.0.0",
     "ruff>=0.15.11",
     "ty>=0.0.32",
+]
+
+[tool.coverage.run]
+source = ["src/nagara"]
+branch = true
+omit = ["src/nagara/cli/*", "*/__init__.py"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+exclude_lines = [
+    "pragma: no cover",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+    "if __name__ == .__main__.:",
 ]
 
 [tool.ruff]
