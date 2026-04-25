@@ -176,6 +176,10 @@ class Settings(BaseSettings):
         default_factory=list,
         description="Allowed CORS origins. Empty list disables cross-origin requests.",
     )
+    CORS_ORIGIN_REGEX: str | None = Field(
+        default=None,
+        description="Regex pattern matched against the request Origin in addition to CORS_ORIGINS. Use for ephemeral preview hosts.",
+    )
 
     # ── Sessions ────────────────────────────────────────────────────────
     USER_SESSION_TTL: timedelta = Field(
