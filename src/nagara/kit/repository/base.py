@@ -121,10 +121,6 @@ class RepositorySoftDeletionMixin[M: _ModelDeletedAt]:
     rows excluded by default) and a ``soft_delete`` method that stamps
     ``deleted_at`` instead of issuing DELETE."""
 
-    async def update(  # type: ignore[override]
-        self, *args: Any, **kwargs: Any
-    ) -> Any: ...  # populated by RepositoryBase via MRO
-
     def get_base_statement(  # type: ignore[override]
         self, *, include_deleted: bool = False
     ) -> Select[tuple[M]]:
@@ -134,7 +130,9 @@ class RepositorySoftDeletionMixin[M: _ModelDeletedAt]:
         return statement
 
     async def soft_delete(self, object: M, *, flush: bool = False) -> M:
-        return await self.update(  # type: ignore[no-any-return]
+        # super().update finds RepositoryBase.update via the MRO of the
+        # composed class — the mixin must NOT define its own update().
+        return await super().update(  # type: ignore[misc]
             object, update_dict={"deleted_at": utc_now()}, flush=flush
         )
 
