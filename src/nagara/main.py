@@ -32,8 +32,10 @@ from nagara.lifespan import (
 from nagara.logging import configure_logging
 from nagara.middleware import RequestIDMiddleware, request_id_var
 from nagara.rate_limit import limiter, rate_limit_exceeded_handler
+from nagara.sentry import configure_sentry, mark_typed_error
 
 configure_logging()
+configure_sentry()
 
 logger = logging.getLogger(__name__)
 
@@ -82,6 +84,7 @@ def _request_id(request: Request) -> str:
 @app.exception_handler(NagaraError)
 async def nagara_error_handler(request: Request, exc: NagaraError) -> JSONResponse:
     rid = _request_id(request)
+    mark_typed_error(exc)
     body: dict[str, object] = {
         "error": exc.error_code,
         "detail": exc.message,

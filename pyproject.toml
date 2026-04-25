@@ -13,6 +13,7 @@ dependencies = [
     "psycopg2-binary>=2.9.12",
     "pydantic-settings>=2.14.0",
     "redis>=5.0.0",
+    "sentry-sdk[fastapi]>=2.20.0",
     "slowapi>=0.1.9",
     "sqlalchemy[asyncio]>=2.0.49",
     "structlog>=25.0.0",

@@ -229,6 +229,16 @@ class Settings(BaseSettings):
         description="Redis DSN. Used by the rate limiter and any future cache/queue.",
     )
 
+    # ── Observability ───────────────────────────────────────────────────
+    SENTRY_DSN: str | None = Field(
+        default=None,
+        description="Sentry DSN for error reporting. Unset disables Sentry entirely.",
+    )
+    RELEASE_VERSION: str = Field(
+        default="dev",
+        description="Build version stamped into Sentry events and OpenAPI. Set by CI.",
+    )
+
     # ── Validators ─────────────────────────────────────────────────────
     @field_validator("LOG_LEVEL", mode="after")
     @classmethod
