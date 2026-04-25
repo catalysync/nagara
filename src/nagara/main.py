@@ -19,6 +19,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
+from nagara.auth.api import router as auth_router
 from nagara.config import settings
 from nagara.lifespan import (
     _shutdown_hooks,
@@ -26,6 +27,8 @@ from nagara.lifespan import (
     build_lifespan,
     on_shutdown,
 )
+from nagara.org.api import router as org_router
+from nagara.workspace.api import router as workspace_router
 
 logger = logging.getLogger(__name__)
 
@@ -52,6 +55,9 @@ app = FastAPI(
     version=settings.APP_VERSION,
     lifespan=build_lifespan(_startup_hooks, _shutdown_hooks),
 )
+app.include_router(auth_router)
+app.include_router(org_router)
+app.include_router(workspace_router)
 
 
 @app.get("/")

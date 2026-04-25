@@ -13,9 +13,9 @@ from sqlalchemy import engine_from_config, pool
 
 from alembic import context
 
-# Models import their Base / register themselves on the metadata when their
-# package is imported. Importing the db module triggers that registration.
-from nagara import db  # noqa: F401  — side-effect import
+# Importing ``nagara.models`` registers every table on ``Base.metadata`` —
+# autogenerate sees nothing without it.
+from nagara import db, models  # noqa: F401  — side-effect import
 from nagara.config import settings
 
 config = context.config
