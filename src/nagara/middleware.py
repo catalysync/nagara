@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+import asyncio
 import uuid
 from contextvars import ContextVar
 
 import structlog
-from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 from starlette.types import ASGIApp
@@ -41,6 +42,38 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
             structlog.contextvars.unbind_contextvars("request_id")
         response.headers[self._header] = rid
         return response
+
+
+class RequestCancelledMiddleware(BaseHTTPMiddleware):
+    """If the client disconnects mid-request, cancel the handler and
+    return 499. Without this, dropped browser tabs leave handlers running
+    until their natural completion — wasted CPU + held DB sessions."""
+
+    def __init__(self, app: ASGIApp, *, poll_seconds: float = 0.1) -> None:
+        super().__init__(app)
+        self._poll = poll_seconds
+
+    async def dispatch(
+        self, request: Request, call_next: RequestResponseEndpoint
+    ) -> Response:
+        async def watch_disconnect() -> None:
+            while True:
+                if await request.is_disconnected():
+                    return
+                await asyncio.sleep(self._poll)
+
+        handler = asyncio.create_task(call_next(request))
+        watcher = asyncio.create_task(watch_disconnect())
+
+        done, pending = await asyncio.wait(
+            [handler, watcher], return_when=asyncio.FIRST_COMPLETED
+        )
+        for task in pending:
+            task.cancel()
+
+        if watcher in done:
+            return Response("client disconnected", status_code=499)
+        return await handler
 
 
 class ContentSizeLimitMiddleware(BaseHTTPMiddleware):
