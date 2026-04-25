@@ -20,6 +20,7 @@ class NagaraError(Exception):
 
     status_code: int = 500
     error_code: str = "internal_error"
+    default_message: str = "internal error"
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
@@ -28,11 +29,12 @@ class NagaraError(Exception):
 
     def __init__(
         self,
-        message: str,
+        message: str | None = None,
         *,
         headers: dict[str, str] | None = None,
         extra: dict[str, Any] | None = None,
     ) -> None:
+        message = message or self.default_message
         super().__init__(message)
         self.message = message
         self.headers = headers or {}
@@ -41,19 +43,37 @@ class NagaraError(Exception):
 
 class NotFound(NagaraError):
     status_code = 404
+    default_message = "not found"
 
 
 class Forbidden(NagaraError):
     status_code = 403
+    default_message = "forbidden"
 
 
 class Unauthorized(NagaraError):
     status_code = 401
+    default_message = "unauthorized"
+
+    def __init__(
+        self,
+        message: str | None = None,
+        *,
+        headers: dict[str, str] | None = None,
+        extra: dict[str, Any] | None = None,
+        realm: str = "nagara",
+    ) -> None:
+        merged = {"WWW-Authenticate": f'Bearer realm="{realm}"'}
+        if headers:
+            merged.update(headers)
+        super().__init__(message, headers=merged, extra=extra)
 
 
 class Conflict(NagaraError):
     status_code = 409
+    default_message = "already exists"
 
 
 class ValidationFailed(NagaraError):
     status_code = 422
+    default_message = "validation failed"
