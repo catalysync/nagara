@@ -21,6 +21,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from nagara.config import settings
+from nagara.exceptions import NagaraError
 from nagara.lifespan import (
     _shutdown_hooks,
     _startup_hooks,
@@ -67,13 +68,38 @@ app.add_middleware(
 )
 
 
+def _request_id(request: Request) -> str:
+    return getattr(request.state, "request_id", None) or request_id_var.get() or "-"
+
+
+@app.exception_handler(NagaraError)
+async def nagara_error_handler(request: Request, exc: NagaraError) -> JSONResponse:
+    rid = _request_id(request)
+    body: dict[str, object] = {
+        "error": exc.error_code,
+        "detail": exc.message,
+        "request_id": rid,
+    }
+    if exc.extra:
+        body["extra"] = exc.extra
+    return JSONResponse(
+        status_code=exc.status_code,
+        content=body,
+        headers={**exc.headers, "x-request-id": rid},
+    )
+
+
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
-    rid = getattr(request.state, "request_id", None) or request_id_var.get() or "-"
+    rid = _request_id(request)
     logger.exception("unhandled error on %s %s", request.method, request.url.path)
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content={"detail": "internal server error", "request_id": rid},
+        content={
+            "error": "internal_error",
+            "detail": "internal server error",
+            "request_id": rid,
+        },
         headers={"x-request-id": rid},
     )
 
