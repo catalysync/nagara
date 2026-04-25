@@ -180,6 +180,13 @@ class Settings(BaseSettings):
         default=None,
         description="Regex pattern matched against the request Origin in addition to CORS_ORIGINS. Use for ephemeral preview hosts.",
     )
+    CORS_ALLOW_CREDENTIALS: bool = Field(
+        default=False,
+        description=(
+            "Whether browsers may send cookies/auth on cross-origin requests. "
+            "Defaults to False — turn on only after you've audited that origins are explicit (no wildcard)."
+        ),
+    )
 
     # ── Sessions ────────────────────────────────────────────────────────
     USER_SESSION_TTL: timedelta = Field(

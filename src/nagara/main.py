@@ -66,11 +66,17 @@ def create_app() -> FastAPI:
     app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
 
     app.add_middleware(RequestIDMiddleware)
+    if settings.CORS_ALLOW_CREDENTIALS and "*" in settings.CORS_ORIGINS:
+        raise RuntimeError(
+            "CORS_ALLOW_CREDENTIALS=True is incompatible with a wildcard "
+            "in CORS_ORIGINS. Browsers strip the wildcard silently and the "
+            "app appears broken. List explicit origins, or turn credentials off."
+        )
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.CORS_ORIGINS,
         allow_origin_regex=settings.CORS_ORIGIN_REGEX,
-        allow_credentials=True,
+        allow_credentials=settings.CORS_ALLOW_CREDENTIALS,
         allow_methods=["*"],
         allow_headers=["*"],
     )
