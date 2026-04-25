@@ -32,7 +32,15 @@ limiter = Limiter(
 
 def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded) -> JSONResponse:
     rid = getattr(request.state, "request_id", None) or request_id_var.get() or "-"
-    retry_after = str(getattr(exc, "retry_after", 60))
+    # slowapi exposes the bucket window via exc.limit.limit.GRANULARITY (seconds).
+    # Falls back to 60 only when the bucket can't be introspected — matches what
+    # most clients expect as a sane default cooldown.
+    retry_after = 60
+    try:
+        granularity = exc.limit.limit.GRANULARITY  # type: ignore[attr-defined]
+        retry_after = int(granularity.seconds)
+    except Exception:
+        pass
     return JSONResponse(
         status_code=429,
         content={
@@ -40,5 +48,5 @@ def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded) -> JSO
             "detail": str(exc.detail) if exc.detail else "rate limit exceeded",
             "request_id": rid,
         },
-        headers={"Retry-After": retry_after, "x-request-id": rid},
+        headers={"Retry-After": str(retry_after), "x-request-id": rid},
     )
