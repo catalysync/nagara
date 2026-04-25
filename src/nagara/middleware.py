@@ -80,9 +80,10 @@ class RequestCancelledMiddleware(BaseHTTPMiddleware):
 
 
 class ContentSizeLimitMiddleware(BaseHTTPMiddleware):
-    """Reject requests whose body exceeds ``max_bytes`` with 413 before any
-    handler runs. Trusts ``Content-Length`` when present; otherwise streams
-    the body and aborts as soon as the running total crosses the cap."""
+    """Reject requests whose declared ``Content-Length`` exceeds ``max_bytes``
+    with 413 before any handler runs. Chunked-transfer requests with no
+    ``Content-Length`` header bypass this guard — handlers that accept
+    streaming uploads must enforce their own cap."""
 
     def __init__(self, app: ASGIApp, *, max_bytes: int) -> None:
         super().__init__(app)
