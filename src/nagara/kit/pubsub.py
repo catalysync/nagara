@@ -14,6 +14,10 @@ class PubSub[K]:
         self._queues: dict[K, list[asyncio.Queue[Any]]] = {}
 
     def subscribe(self, topic: K) -> AsyncIterator[Any]:
+        # Caller must iterate the returned async generator to consume
+        # buffered events. Dropping it without iterating leaves the queue
+        # registered until close(topic). For long-lived topics with stuck
+        # subscribers, set a max queue size and drop on full.
         queue: asyncio.Queue[Any] = asyncio.Queue()
         self._queues.setdefault(topic, []).append(queue)
 
