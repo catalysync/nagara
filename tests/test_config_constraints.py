@@ -11,13 +11,6 @@ from pydantic import ValidationError
 from nagara.config import Environment, Settings
 
 
-@pytest.fixture
-def hermetic_env(monkeypatch: pytest.MonkeyPatch):
-    for key in list(os.environ):
-        if key.startswith("NAGARA_"):
-            monkeypatch.delenv(key, raising=False)
-
-
 # ── Numeric bounds ─────────────────────────────────────────────────────────
 
 

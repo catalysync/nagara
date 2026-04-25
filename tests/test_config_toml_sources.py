@@ -17,18 +17,7 @@ import textwrap
 from pathlib import Path
 from unittest.mock import patch
 
-import pytest
-
 from nagara.config import Settings
-
-
-@pytest.fixture
-def hermetic_env(monkeypatch: pytest.MonkeyPatch):
-    """Scrub any NAGARA_* env var and NAGARA_PROFILE so one test's env doesn't
-    leak into another. Patches ``os.environ`` in-place; monkeypatch reverts."""
-    for key in list(os.environ):
-        if key.startswith("NAGARA_"):
-            monkeypatch.delenv(key, raising=False)
 
 
 def _write(path: Path, content: str) -> None:
