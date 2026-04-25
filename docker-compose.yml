@@ -43,6 +43,49 @@ services:
       timeout: 3s
       retries: 10
 
+  # S3-compatible object store. Demo CSVs and any future user-uploaded
+  # files live here in dev.
+  minio:
+    image: minio/minio:RELEASE.2024-12-13T22-19-12Z
+    restart: unless-stopped
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER:     ${NAGARA_MINIO_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${NAGARA_MINIO_PWD:-minioadmin}
+    ports:
+      - "${NAGARA_MINIO_PORT:-9000}:9000"
+      - "${NAGARA_MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "mc ready local || curl --fail --silent http://127.0.0.1:9000/minio/health/live"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
+  # One-shot bucket bootstrap. Creates the default bucket on first boot
+  # so app code never has to. Idempotent: ``mb --ignore-existing`` is a
+  # no-op when the bucket is already there. Exits cleanly so it doesn't
+  # tie up a slot in ``docker ps``.
+  minio-setup:
+    image: minio/mc:RELEASE.2024-11-21T17-21-54Z
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      MINIO_ROOT_USER:     ${NAGARA_MINIO_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${NAGARA_MINIO_PWD:-minioadmin}
+      BUCKET_NAME:         ${NAGARA_S3_BUCKET:-nagara}
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        set -e
+        mc alias set local http://minio:9000 "$$MINIO_ROOT_USER" "$$MINIO_ROOT_PASSWORD"
+        mc mb --ignore-existing "local/$$BUCKET_NAME"
+        echo "minio bucket ready: $$BUCKET_NAME"
+
   # Runs ``alembic upgrade head`` once before the app starts. Uses
   # ``condition: service_completed_successfully`` on the app so multiple
   # replicas can never race to migrate. Mirrors the k8s init-container model.
@@ -95,6 +138,7 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  minio_data:
 
 networks:
   default:
