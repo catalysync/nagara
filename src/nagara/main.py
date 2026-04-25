@@ -27,8 +27,10 @@ from nagara.lifespan import (
     build_lifespan,
     on_shutdown,
 )
+from nagara.middleware import RequestIDLogFilter, RequestIDMiddleware
 
 logger = logging.getLogger(__name__)
+logging.getLogger().addFilter(RequestIDLogFilter())
 
 
 # Dedicated tiny engine for the readiness probe. Kept separate from the
@@ -54,6 +56,7 @@ app = FastAPI(
     lifespan=build_lifespan(_startup_hooks, _shutdown_hooks),
 )
 
+app.add_middleware(RequestIDMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
