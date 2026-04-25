@@ -28,10 +28,12 @@ from nagara.lifespan import (
     build_lifespan,
     on_shutdown,
 )
-from nagara.middleware import RequestIDLogFilter, RequestIDMiddleware, request_id_var
+from nagara.logging import configure_logging
+from nagara.middleware import RequestIDMiddleware, request_id_var
+
+configure_logging()
 
 logger = logging.getLogger(__name__)
-logging.getLogger().addFilter(RequestIDLogFilter())
 
 
 # Dedicated tiny engine for the readiness probe. Kept separate from the

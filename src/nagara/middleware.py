@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-import logging
 import uuid
 from contextvars import ContextVar
 
+import structlog
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
@@ -30,15 +30,14 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
         rid = inbound if inbound and _RID_RE.match(inbound) else uuid.uuid4().hex
         request.state.request_id = rid
         token = request_id_var.set(rid)
+        # bind into structlog's context so merge_contextvars picks it up on
+        # every log record emitted during this request — covers both our
+        # structlog calls and stdlib logger calls routed through dictConfig.
+        structlog.contextvars.bind_contextvars(request_id=rid)
         try:
             response: Response = await call_next(request)
         finally:
             request_id_var.reset(token)
+            structlog.contextvars.unbind_contextvars("request_id")
         response.headers[self._header] = rid
         return response
-
-
-class RequestIDLogFilter(logging.Filter):
-    def filter(self, record: logging.LogRecord) -> bool:
-        record.request_id = request_id_var.get() or "-"
-        return True
