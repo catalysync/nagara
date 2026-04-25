@@ -111,6 +111,23 @@ class ContentSizeLimitMiddleware(BaseHTTPMiddleware):
 _BOUNDARY_RE = re.compile(r"^[\w\-]{1,70}$")
 
 
+def _parse_content_type(value: str) -> tuple[str, dict[str, str]]:
+    """Parse a Content-Type header into (media_type, params).
+    Handles ``multipart/form-data; boundary=abc; charset=UTF-8`` and
+    quoted-string boundaries per RFC 7231 / 9112."""
+    if not value:
+        return "", {}
+    parts = [p.strip() for p in value.split(";")]
+    media_type = parts[0].lower()
+    params: dict[str, str] = {}
+    for part in parts[1:]:
+        if "=" not in part:
+            continue
+        k, _, v = part.partition("=")
+        params[k.strip().lower()] = v.strip().strip('"')
+    return media_type, params
+
+
 class MultipartBoundaryMiddleware(BaseHTTPMiddleware):
     """Validate ``Content-Type: multipart/form-data; boundary=...`` syntax
     on configured paths before FastAPI's parser sees the body. Rejects
@@ -125,10 +142,10 @@ class MultipartBoundaryMiddleware(BaseHTTPMiddleware):
         if not any(request.url.path.startswith(p) for p in self._paths):
             return await call_next(request)
         ct = request.headers.get("content-type", "")
-        if "multipart/form-data" not in ct or "boundary=" not in ct:
+        media_type, params = _parse_content_type(ct)
+        if media_type != "multipart/form-data" or "boundary" not in params:
             return self._reject("Content-Type must be multipart/form-data with a boundary")
-        boundary = ct.split("boundary=")[-1].strip().strip('"')
-        if not _BOUNDARY_RE.match(boundary):
+        if not _BOUNDARY_RE.match(params["boundary"]):
             return self._reject("invalid multipart boundary")
         return await call_next(request)
 

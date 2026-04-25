@@ -119,7 +119,16 @@ def test_multipart_rejects_non_multipart_content_type():
 def test_multipart_rejects_malformed_boundary():
     r = _multipart_app().post(
         "/upload",
-        headers={"Content-Type": "multipart/form-data; boundary=bad;chars"},
+        # Genuine RFC violation: boundary contains chars outside [\w-].
+        headers={"Content-Type": "multipart/form-data; boundary=bad@chars$"},
+    )
+    assert r.status_code == 422
+
+
+def test_multipart_rejects_overlong_boundary():
+    r = _multipart_app().post(
+        "/upload",
+        headers={"Content-Type": "multipart/form-data; boundary=" + "a" * 100},
     )
     assert r.status_code == 422
 
@@ -128,6 +137,24 @@ def test_multipart_accepts_valid_boundary():
     r = _multipart_app().post(
         "/upload",
         headers={"Content-Type": "multipart/form-data; boundary=valid_boundary_123"},
+    )
+    assert r.status_code == 200
+
+
+def test_multipart_accepts_quoted_boundary_with_extra_params():
+    """RFC-compliant: boundary may be quoted, and other params may follow."""
+    r = _multipart_app().post(
+        "/upload",
+        headers={"Content-Type": 'multipart/form-data; boundary="abc123"; charset=UTF-8'},
+    )
+    assert r.status_code == 200
+
+
+def test_multipart_accepts_unquoted_boundary_with_extra_params():
+    """RFC-compliant: boundary unquoted, charset trailing — must not corrupt parse."""
+    r = _multipart_app().post(
+        "/upload",
+        headers={"Content-Type": "multipart/form-data; boundary=abc123; charset=UTF-8"},
     )
     assert r.status_code == 200
 
