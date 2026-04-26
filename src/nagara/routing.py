@@ -94,6 +94,12 @@ class IncludedInSchemaAPIRoute(_FastAPIRoute):
     ``APITag.internal`` → only in dev's spec (so devs can browse internal
     endpoints in /docs locally; prod consumers never see them).
     Untagged → hidden by default.
+
+    Note: this **overrides** ``include_in_schema`` based on tags, so an
+    explicit ``include_in_schema=True`` on an untagged route is *not*
+    honored. To publish a route, tag it with :attr:`APITag.public`.
+    Explicit ``include_in_schema=False`` is honored — early-returns before
+    tag inspection.
     """
 
     def __init__(self, path: str, endpoint: Callable[..., Any], **kwargs: Any) -> None:

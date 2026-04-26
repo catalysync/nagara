@@ -96,6 +96,20 @@ async def test_autocommit_wrapper_finds_session_in_positional_args():
     mock_session.commit.assert_awaited_once()
 
 
+def test_include_in_schema_false_wins_over_tag():
+    """Explicit False is honored even when public-tagged — the only
+    documented escape hatch from tag-based publishing."""
+    router = APIRouter()
+
+    @router.get("/_force_hidden", tags=[APITag.public], include_in_schema=False)
+    def hidden():
+        return {"k": "v"}
+
+    app = FastAPI()
+    app.include_router(router)
+    assert "/_force_hidden" not in app.openapi()["paths"]
+
+
 def test_internal_routes_hidden_in_production_mode():
     from nagara.config import Environment, temporary_settings
 
