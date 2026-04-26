@@ -2,6 +2,10 @@
 
 > Your operating system for data.
 
+[![CI](https://github.com/catalysync/nagara/actions/workflows/ci.yml/badge.svg)](https://github.com/catalysync/nagara/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](./LICENSE)
+[![Python](https://img.shields.io/badge/python-3.14-blue.svg)](https://www.python.org/)
+
 ## Quickstart
 
 Requires `uv`, `docker`, `just`.
