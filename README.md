@@ -19,6 +19,24 @@ just dev                # API on http://127.0.0.1:8000
 Open `http://127.0.0.1:8000/docs` for the interactive OpenAPI playground,
 `/health/live` and `/health/ready` for the Kubernetes-ready probes.
 
+## A tagged route in 5 lines
+
+```python
+from nagara import APIRouter, APITag
+
+router = APIRouter()
+
+@router.get("/widgets", tags=[APITag.public])
+async def list_widgets():
+    return {"widgets": []}
+```
+
+`APITag.public` publishes the route in the OpenAPI spec; `APITag.internal`
+keeps it visible in dev `/docs` only; untagged routes stay out of the spec
+by default. Raise `nagara.NotFound("widget", extra={"id": widget_id})`
+(or any `NagaraError` subclass) and the typed-envelope handler returns a
+structured 4xx with a `request_id`.
+
 ## Stack
 
 - **Python 3.14** with [uv](https://github.com/astral-sh/uv) for env management
