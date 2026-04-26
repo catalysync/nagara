@@ -1,6 +1,4 @@
 import pytest
-from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
 from fastapi.testclient import TestClient
 
 from nagara.exceptions import (
@@ -177,16 +175,12 @@ def test_extra_defaults_to_empty_dict():
 
 
 def _build_app() -> TestClient:
-    app = FastAPI()
+    """Use the real `create_app()` factory so we exercise the production
+    NagaraError handler — including request_id, mark_typed_error, and
+    header merge order."""
+    from nagara.main import create_app
 
-    @app.exception_handler(NagaraError)
-    async def h(req: Request, exc: NagaraError):
-        body = {"error": exc.error_code, "detail": exc.message}
-        if isinstance(exc, ValidationFailed) and exc.errors:
-            body["errors"] = [e.model_dump() for e in exc.errors]  # ty:ignore[invalid-assignment]
-        if exc.extra:
-            body["extra"] = exc.extra  # ty:ignore[invalid-assignment]
-        return JSONResponse(status_code=exc.status_code, content=body, headers=exc.headers)
+    app = create_app()
 
     @app.get("/nf")
     def nf():
@@ -202,6 +196,10 @@ def _build_app() -> TestClient:
     def au():
         raise Unauthorized()
 
+    @app.get("/boom")
+    def boom():
+        raise RuntimeError("kaboom")
+
     return TestClient(app)
 
 
@@ -212,6 +210,7 @@ def test_envelope_shape_for_not_found():
     assert body["error"] == "not_found"
     assert body["detail"] == "missing thing"
     assert body["extra"] == {"thing_id": "123"}
+    assert body["request_id"] == r.headers["x-request-id"]
 
 
 def test_envelope_includes_errors_for_validation_failed():
@@ -220,9 +219,31 @@ def test_envelope_includes_errors_for_validation_failed():
     body = r.json()
     assert body["error"] == "validation_failed"
     assert body["errors"][0]["loc"] == ["body", "name"]
+    assert body["request_id"]
 
 
 def test_envelope_includes_www_authenticate_for_401():
     r = _build_app().get("/auth")
     assert r.status_code == 401
     assert r.headers["www-authenticate"].startswith("Bearer")
+    assert r.headers["x-request-id"]
+
+
+def test_unhandled_exception_returns_internal_envelope():
+    """TestClient re-raises by default; raise_server_exceptions=False lets
+    the production handler run so we can assert its envelope shape."""
+    from nagara.main import create_app
+
+    app = create_app()
+
+    @app.get("/boom")
+    def boom():
+        raise RuntimeError("kaboom")
+
+    c = TestClient(app, raise_server_exceptions=False)
+    r = c.get("/boom")
+    assert r.status_code == 500
+    body = r.json()
+    assert body["error"] == "internal_error"
+    assert "RuntimeError" in body["detail"]
+    assert body["request_id"] == r.headers["x-request-id"]

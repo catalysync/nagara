@@ -39,9 +39,23 @@ def test_request_id_echoed_when_inbound():
     assert r.headers["x-request-id"] == "client-supplied-123"
 
 
-def test_request_id_contextvar_resets_after_request():
-    _rid_app().get("/x")
-    assert request_id_var.get() == ""
+def test_request_id_contextvar_set_inside_request_handler():
+    """The contextvar is request-scoped: set inside the request task,
+    reset on exit. We can't observe the reset from the test thread (it's
+    a different task), so verify the var is *visible* mid-handler instead."""
+    app = FastAPI()
+    app.add_middleware(RequestIDMiddleware)
+    seen: dict[str, str] = {}
+
+    @app.get("/probe")
+    def probe(req: Request):
+        seen["state"] = req.state.request_id
+        seen["ctx"] = request_id_var.get()
+        return {"ok": True}
+
+    TestClient(app).get("/probe", headers={"x-request-id": "ctx-test-rid"})
+    assert seen["state"] == "ctx-test-rid"
+    assert seen["ctx"] == "ctx-test-rid"
 
 
 # ── ContentSizeLimitMiddleware ─────────────────────────────────────────────

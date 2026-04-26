@@ -29,11 +29,16 @@ def test_limiter_instance_uses_redis_storage():
 
 
 def test_rate_limit_handler_returns_envelope():
-    """Build a fake RateLimitExceeded and run the handler directly."""
+    """Build a real Limit so retry_after introspection actually runs — a
+    fully-mocked Limit silently swallows the lookup error and falls back
+    to the default 60s, hiding regressions."""
+    from limits import parse
+
     request = Mock(spec=Request)
     request.state = Mock(request_id="rid-123")
 
     fake_limit = Mock(error_message="2 per 1 minute")
+    fake_limit.limit = parse("2/minute")
     exc = RateLimitExceeded(fake_limit)
     exc.detail = "2 per 1 minute"  # type: ignore[attr-defined]
 
@@ -45,7 +50,8 @@ def test_rate_limit_handler_returns_envelope():
     assert body["error"] == "rate_limit_exceeded"
     assert body["detail"] == "2 per 1 minute"
     assert body["request_id"] == "rid-123"
-    assert response.headers["retry-after"] is not None
+    # 60s window × 1 multiplier — proves introspection ran.
+    assert response.headers["retry-after"] == "60"
     assert response.headers["x-request-id"] == "rid-123"
 
 

@@ -12,31 +12,44 @@ from nagara.main import _check_postgres_version
 
 
 def _stub_engine(version_num: int):
+    """Return (engine_stub, executed) where ``executed`` is a list of the
+    SQL strings the probe ran — lets tests assert the version SELECT
+    actually fired instead of just not raising."""
+    executed: list[str] = []
+
     @asynccontextmanager
     async def _connect():
         conn = AsyncMock()
-        # ``scalar_one`` is a sync method on Result — use MagicMock so the
-        # whole stub surface stays consistent (no AsyncMock + sync-lambda mix).
         result = MagicMock(spec=Result)
         result.scalar_one.return_value = version_num
-        conn.execute = AsyncMock(return_value=result)
+
+        async def _execute(stmt):
+            executed.append(str(stmt))
+            return result
+
+        conn.execute = _execute
         yield conn
 
     class Stub:
         def connect(self):
             return _connect()
 
-    return Stub()
+    return Stub(), executed
 
 
 async def test_passes_when_server_version_meets_minimum():
-    with patch("nagara.main._get_probe_engine", return_value=_stub_engine(160003)):
+    engine, executed = _stub_engine(160003)
+    with patch("nagara.main._get_probe_engine", return_value=engine):
         await _check_postgres_version(None)  # type: ignore[arg-type]  # ty:ignore[invalid-argument-type]
+    assert any("server_version_num" in s for s in executed), (
+        "version probe SELECT must actually run"
+    )
 
 
 async def test_raises_when_server_version_below_minimum():
+    engine, _ = _stub_engine(140002)
     with (
-        patch("nagara.main._get_probe_engine", return_value=_stub_engine(140002)),
+        patch("nagara.main._get_probe_engine", return_value=engine),
         pytest.raises(RuntimeError, match="major version 14"),
     ):
         await _check_postgres_version(None)  # type: ignore[arg-type]  # ty:ignore[invalid-argument-type]

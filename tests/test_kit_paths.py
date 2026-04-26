@@ -73,11 +73,15 @@ def test_validated_filename_accepts_clean_segments():
 
 
 def test_validated_filename_rejects_dot_dot():
-    c = _build_app()
-    # Routes containing slashes / `..` won't even match — that's fine,
-    # the route layer is the first defence. Verify the handler-side
-    # rejection by hitting a route with explicit `..` percent-encoded.
-    r = c.get("/file/%2e%2e")
-    # FastAPI may decode-then-route; either 404 (no match) or 400 (handler rejected)
-    # are both acceptable defences.
-    assert r.status_code in (400, 404)
+    """Exercise the validator directly so the test fails if the dependency
+    is removed — going through routes risks 404 short-circuiting."""
+    import pytest
+
+    from nagara.exceptions import BadRequest
+    from nagara.kit.paths import _validated_filename, _validated_foldername
+
+    for bad in ("..", "../etc", "a/b", "a\\b", ""):
+        with pytest.raises(BadRequest):
+            _validated_filename(bad)
+        with pytest.raises(BadRequest):
+            _validated_foldername(bad)

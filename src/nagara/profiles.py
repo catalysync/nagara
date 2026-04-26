@@ -113,9 +113,17 @@ def load_profiles(path: Path | str) -> ProfileStore:
     return store
 
 
-def active_profile_name(*, default: str = "default") -> str:
-    """Return the active profile name, respecting the NAGARA_PROFILE env override."""
-    return os.environ.get("NAGARA_PROFILE") or default
+def active_profile_name(*, store: ProfileStore | None = None, default: str = "default") -> str:
+    """Return the active profile name. Resolution order:
+    ``NAGARA_PROFILE`` env var → ``store.active`` (if a store is given) →
+    ``default``. Matches the precedence used by ``TomlLayeredSource`` in
+    ``config.py``."""
+    env = os.environ.get("NAGARA_PROFILE")
+    if env:
+        return env
+    if store is not None and store.active is not None:
+        return store.active
+    return default
 
 
 def _toml_value(value: Any) -> str:
