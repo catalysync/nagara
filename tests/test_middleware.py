@@ -277,6 +277,9 @@ async def test_request_cancelled_middleware_returns_499_on_disconnect():
         await asyncio.sleep(0.05)
         state["disconnected"] = True
 
+    # NB: this patches the unbound method on the class, so every Request
+    # instance in the test process briefly sees the fake. Safe under the
+    # default sequential pytest runner; would race under pytest-xdist.
     with patch("starlette.requests.Request.is_disconnected", fake_is_disconnected):
         # Run trigger and the request concurrently in the AnyIO transport.
         # TestClient is sync but the middleware uses asyncio internally; the

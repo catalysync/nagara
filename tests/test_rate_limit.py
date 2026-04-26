@@ -1,11 +1,26 @@
 from unittest.mock import Mock
 
+import pytest
 from fastapi import FastAPI, Request
 from fastapi.testclient import TestClient
 from slowapi.errors import RateLimitExceeded
 
 from nagara.middleware import RequestIDMiddleware
 from nagara.rate_limit import limiter, rate_limit_exceeded_handler
+
+
+@pytest.fixture
+def reset_limits():
+    """Drop any LIMITS:* keys the integration test wrote so reruns aren't
+    affected by stale state in a long-lived dev Redis."""
+    import redis
+
+    from nagara.config import settings
+
+    client = redis.Redis.from_url(settings.REDIS_URL)
+    yield
+    for key in client.scan_iter(match="LIMITS:*"):
+        client.delete(key)
 
 
 def test_limiter_instance_uses_redis_storage():
@@ -48,7 +63,7 @@ def test_rate_limit_handler_falls_back_request_id_dash():
     assert body["request_id"] == "-"
 
 
-def test_route_decorated_with_limit_returns_429_after_quota():
+def test_route_decorated_with_limit_returns_429_after_quota(reset_limits):
     """Integration: a decorated route returns 429 once quota exhausted."""
     app = FastAPI()
     app.state.limiter = limiter
@@ -88,7 +103,7 @@ def test_retry_after_honors_window_multiplier():
     assert response.headers["retry-after"] == "300"
 
 
-def test_429_response_carries_retry_after():
+def test_429_response_carries_retry_after(reset_limits):
     app = FastAPI()
     app.state.limiter = limiter
     app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
