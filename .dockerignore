@@ -45,3 +45,12 @@ tests
 notes
 scratch
 *.md
+# but pyproject.toml references README.md — include it.
+!README.md
+
+# nothing in these belongs in the python image build context
+frontend
+mizu
+node_modules
+nagara-planning
+nagara-private

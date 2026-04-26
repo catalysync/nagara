@@ -19,7 +19,7 @@ ENV UV_LINK_MODE=copy \
 WORKDIR /app
 
 # Install dependencies first (cache layer survives source changes).
-COPY pyproject.toml uv.lock ./
+COPY pyproject.toml uv.lock README.md LICENSE ./
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-install-project --no-dev
 
