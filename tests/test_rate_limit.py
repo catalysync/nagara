@@ -10,7 +10,7 @@ from nagara.rate_limit import limiter, rate_limit_exceeded_handler
 
 def test_limiter_instance_uses_redis_storage():
     assert limiter.enabled
-    assert "redis" in str(getattr(limiter, "_storage_uri", limiter._storage_uri or ""))  # type: ignore[attr-defined]
+    assert "redis" in str(limiter._storage_uri)  # noqa: SLF001
 
 
 def test_rate_limit_handler_returns_envelope():
