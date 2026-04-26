@@ -10,6 +10,12 @@ from sqlalchemy import text
 
 from nagara.main import app
 
+# Module-scope TestClient by design: instantiating without `with` skips the
+# lifespan, so the real _check_postgres_version / _verify_production_settings
+# hooks never fire and tests don't need a live Postgres. The per-test
+# `_get_probe_engine` patch is what keeps /health/ready tests hermetic. If you
+# wrap individual tests with `with TestClient(app):` you'll need to provide
+# a usable Postgres or stub the startup hooks too.
 client = TestClient(app)
 
 

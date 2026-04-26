@@ -19,7 +19,7 @@ from slowapi.errors import RateLimitExceeded
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
-from nagara.config import settings, verify_settings
+from nagara.config import get_current_settings, settings, verify_settings
 from nagara.exceptions import NagaraError, ValidationFailed
 from nagara.lifespan import (
     _shutdown_hooks,
@@ -51,7 +51,14 @@ def _get_probe_engine() -> AsyncEngine:
     """Tiny, lazily-built engine for the readiness probe. Kept separate
     from the application's request-serving pool so a slow check can't
     exhaust it. Cached so subsequent calls share one engine; tests can
-    swap by patching ``nagara.main._get_probe_engine``."""
+    swap by patching ``nagara.main._get_probe_engine``.
+
+    The cache is keyed on no arguments and the DSN is read from the
+    module-level ``settings`` singleton at first call. ``temporary_settings``
+    DSN swaps after first use will *not* be picked up by the cached engine —
+    intentional, since startup is the only legitimate caller and settings
+    are immutable in production.
+    """
     return create_async_engine(
         settings.get_postgres_dsn("asyncpg"),
         pool_size=1,
@@ -62,7 +69,7 @@ def _get_probe_engine() -> AsyncEngine:
 
 @on_shutdown
 async def _dispose_probe_engine(_app: FastAPI) -> None:
-    if "_get_probe_engine" in globals() and _get_probe_engine.cache_info().currsize:
+    if _get_probe_engine.cache_info().currsize:
         await _get_probe_engine().dispose()
         _get_probe_engine.cache_clear()
 
@@ -72,18 +79,19 @@ async def _check_postgres_version(_app: FastAPI) -> None:
     """Fail-fast if the connected Postgres is older than the configured
     minimum. Cheap one-shot SELECT during startup; saves baffling
     runtime errors when a deploy lands on an unsupported server."""
-    if settings.POSTGRES_MIN_VERSION == 0:
+    s = get_current_settings()
+    if s.POSTGRES_MIN_VERSION == 0:
         return
     engine = _get_probe_engine()
     async with engine.connect() as conn:
         result = await conn.execute(text("SHOW server_version_num"))
         version_num = int(result.scalar_one())
     major = version_num // 10000
-    if major < settings.POSTGRES_MIN_VERSION:
+    if major < s.POSTGRES_MIN_VERSION:
         raise RuntimeError(
-            f"PostgreSQL {major} is older than the configured minimum "
-            f"{settings.POSTGRES_MIN_VERSION}. Upgrade the server or set "
-            f"NAGARA_POSTGRES_MIN_VERSION to override."
+            f"server reports PostgreSQL major version {major}; "
+            f"NAGARA_POSTGRES_MIN_VERSION is {s.POSTGRES_MIN_VERSION}. "
+            f"Upgrade the server or lower the configured minimum."
         )
 
 
@@ -112,7 +120,10 @@ def create_app() -> FastAPI:
     if settings.TRUST_PROXY:
         app.add_middleware(ForwardedPrefixMiddleware)
     app.add_middleware(SecurityHeadersMiddleware)
-    app.add_middleware(RequestCancelledMiddleware)
+    app.add_middleware(
+        RequestCancelledMiddleware,
+        poll_seconds=settings.REQUEST_CANCEL_POLL_SECONDS,
+    )
     app.add_middleware(ContentSizeLimitMiddleware, max_bytes=settings.REQUEST_MAX_BYTES)
     app.add_middleware(RequestIDMiddleware)
     if settings.CORS_ALLOW_CREDENTIALS and "*" in settings.CORS_ORIGINS:
@@ -153,11 +164,14 @@ def create_app() -> FastAPI:
     async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
         rid = _request_id(request)
         logger.exception("unhandled error on %s %s", request.method, request.url.path)
+        # Surface the exception class name (never the message) so first-line
+        # ops can categorize incidents without grepping logs. The class name
+        # is safe — it never contains user input.
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={
                 "error": "internal_error",
-                "detail": "internal server error",
+                "detail": f"internal server error: {type(exc).__name__}",
                 "request_id": rid,
             },
             headers={"x-request-id": rid},
