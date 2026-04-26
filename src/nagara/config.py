@@ -209,6 +209,15 @@ class Settings(BaseSettings):
             "reports a lower version — set to 0 to disable the check."
         ),
     )
+    IDLE_TIMEOUT_SECONDS: int = Field(
+        default=0,
+        ge=0,
+        description=(
+            "Seconds without requests after which ``/health/idle`` advises "
+            "shutdown. 0 disables the idle endpoint — set to a positive value "
+            "for spot/serverless deploys that scale on idleness."
+        ),
+    )
 
     # ── Sessions ────────────────────────────────────────────────────────
     USER_SESSION_TTL: timedelta = Field(
