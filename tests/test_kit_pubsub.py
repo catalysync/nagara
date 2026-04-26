@@ -97,5 +97,6 @@ async def test_close_drops_topic_from_registry():
     bus: PubSub = PubSub()
     topic = "drop"
     bus.subscribe(topic)
+    assert topic in bus.topics()
     bus.close(topic)
-    assert topic not in bus._queues  # noqa: SLF001
+    assert topic not in bus.topics()

@@ -51,3 +51,8 @@ class PubSub[K]:
     def close(self, topic: K) -> None:
         for queue in self._queues.pop(topic, []):
             queue.put_nowait(_SENTINEL)
+
+    def topics(self) -> list[K]:
+        """Return the currently-subscribed topics. Useful for tests and
+        ops introspection so callers don't reach into ``_queues``."""
+        return list(self._queues.keys())
