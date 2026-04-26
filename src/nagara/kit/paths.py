@@ -4,7 +4,8 @@ import re
 from pathlib import Path
 from typing import Annotated
 
-from fastapi import Depends, Path as PathParam
+from fastapi import Depends
+from fastapi import Path as PathParam
 
 from nagara.exceptions import BadRequest
 

@@ -14,7 +14,6 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 from starlette.types import ASGIApp
 
-
 request_id_var: ContextVar[str] = ContextVar("request_id", default="")
 
 
@@ -89,9 +88,7 @@ class RequestCancelledMiddleware(BaseHTTPMiddleware):
         super().__init__(app)
         self._poll = poll_seconds
 
-    async def dispatch(
-        self, request: Request, call_next: RequestResponseEndpoint
-    ) -> Response:
+    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         async def watch_disconnect() -> None:
             while True:
                 if await request.is_disconnected():
@@ -101,9 +98,7 @@ class RequestCancelledMiddleware(BaseHTTPMiddleware):
         handler = asyncio.create_task(call_next(request))
         watcher = asyncio.create_task(watch_disconnect())
 
-        done, pending = await asyncio.wait(
-            [handler, watcher], return_when=asyncio.FIRST_COMPLETED
-        )
+        done, pending = await asyncio.wait([handler, watcher], return_when=asyncio.FIRST_COMPLETED)
         for task in pending:
             task.cancel()
 
@@ -161,9 +156,7 @@ def _parse_content_type(value: str) -> tuple[str, dict[str, str]]:
     msg["Content-Type"] = value
     media_type = (msg.get_content_type() or "").lower()
     params: dict[str, str] = {
-        k.lower(): v
-        for k, v in msg.get_params(failobj=[])
-        if k.lower() != media_type
+        k.lower(): v for k, v in msg.get_params(failobj=[]) if k.lower() != media_type
     }
     return media_type, params
 

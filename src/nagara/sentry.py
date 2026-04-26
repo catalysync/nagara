@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 import sentry_sdk
 from sentry_sdk.integrations.fastapi import FastApiIntegration
@@ -21,6 +21,7 @@ def _before_send(event: Event, hint: Hint) -> Event | None:
     # Cross-reference Sentry events to structured logs by stamping the
     # active request id (set by RequestIDMiddleware) onto every event.
     from nagara.middleware import request_id_var
+
     rid = request_id_var.get() or None
     if rid:
         tags = dict(tags)

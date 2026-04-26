@@ -80,9 +80,7 @@ async def paginate(
     return items, total
 
 
-def build_pagination(
-    pagination: PaginationParams, total_count: int
-) -> Pagination:
+def build_pagination(pagination: PaginationParams, total_count: int) -> Pagination:
     """Convenience: turn ``(page, limit, total_count)`` into a populated
     :class:`Pagination` with ``max_page`` computed."""
     page, limit = pagination

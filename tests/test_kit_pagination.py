@@ -1,10 +1,9 @@
-from fastapi import Depends, FastAPI
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from pydantic import Field
 
 from nagara.kit.pagination import (
     ListResource,
-    Pagination,
     PaginationParams,
     PaginationParamsQuery,
     build_pagination,

@@ -11,7 +11,6 @@ from nagara.middleware import (
     request_id_var,
 )
 
-
 # ── RequestIDMiddleware ────────────────────────────────────────────────────
 
 
@@ -145,7 +144,9 @@ def test_multipart_accepts_rfc2046_punctuation_in_boundary():
     """RFC 2046 bcharsnospace allows '.', '+', '(', ')', '=', '?'."""
     r = _multipart_app().post(
         "/upload",
-        headers={"Content-Type": "multipart/form-data; boundary=----WebKitFormBoundary.7MA4YWxkTrZu0gW"},
+        headers={
+            "Content-Type": "multipart/form-data; boundary=----WebKitFormBoundary.7MA4YWxkTrZu0gW"
+        },
     )
     assert r.status_code == 200
 
@@ -200,12 +201,15 @@ def test_forwarded_prefix_absent_leaves_root_path_unchanged():
 # ── QueryListFlattenMiddleware ─────────────────────────────────────────────
 
 
+_IDS_QUERY = Query(default_factory=list)
+
+
 def _query_app() -> TestClient:
     app = FastAPI()
     app.add_middleware(QueryListFlattenMiddleware, keys=["ids"])
 
     @app.get("/list")
-    def lst(ids: list[str] = Query([]), name: str | None = None):
+    def lst(ids: list[str] = _IDS_QUERY, name: str | None = None):
         return {"ids": ids, "name": name}
 
     return TestClient(app)
@@ -253,7 +257,7 @@ async def test_request_cancelled_middleware_returns_499_on_disconnect():
     """Mock ``request.is_disconnected`` to flip True after a tick, while the
     handler sleeps. The middleware should cancel the handler and respond 499."""
     import asyncio
-    from unittest.mock import AsyncMock, patch
+    from unittest.mock import patch
 
     app = FastAPI()
     app.add_middleware(RequestCancelledMiddleware, poll_seconds=0.01)
@@ -263,15 +267,11 @@ async def test_request_cancelled_middleware_returns_499_on_disconnect():
         await asyncio.sleep(5)
         return {"ok": True}
 
-    c = TestClient(app)
-
     # Use httpx ASGI transport; patch is_disconnected so it flips True quickly.
     state = {"disconnected": False}
 
     async def fake_is_disconnected(self):
-        if state["disconnected"]:
-            return True
-        return False
+        return bool(state["disconnected"])
 
     async def trigger_disconnect():
         await asyncio.sleep(0.05)
@@ -286,6 +286,7 @@ async def test_request_cancelled_middleware_returns_499_on_disconnect():
         # patched is_disconnected runs inside the same loop.
         task = asyncio.create_task(trigger_disconnect())
         from httpx import ASGITransport, AsyncClient
+
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
             r = await ac.get("/slow")
         await task

@@ -39,6 +39,7 @@ def test_rate_limit_handler_returns_envelope():
 
     response = rate_limit_exceeded_handler(request, exc)
     import json
+
     body = json.loads(response.body)
     assert response.status_code == 429
     assert body["error"] == "rate_limit_exceeded"
@@ -59,6 +60,7 @@ def test_rate_limit_handler_falls_back_request_id_dash():
 
     response = rate_limit_exceeded_handler(request, exc)
     import json
+
     body = json.loads(response.body)
     assert body["request_id"] == "-"
 
@@ -72,6 +74,7 @@ def test_route_decorated_with_limit_returns_429_after_quota(reset_limits):
 
     # Use a unique key per test run to avoid Redis state leakage
     import uuid
+
     test_path = f"/_test_{uuid.uuid4().hex}"
 
     @app.get(test_path)
@@ -110,6 +113,7 @@ def test_429_response_carries_retry_after(reset_limits):
     app.add_middleware(RequestIDMiddleware)
 
     import uuid
+
     test_path = f"/_test_{uuid.uuid4().hex}"
 
     @app.get(test_path)

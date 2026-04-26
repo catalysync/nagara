@@ -29,9 +29,7 @@ class IDSchema(Schema):
 
 class TimestampedSchema(Schema):
     created_at: datetime = Field(description="Creation timestamp.")
-    updated_at: datetime | None = Field(
-        default=None, description="Last update timestamp."
-    )
+    updated_at: datetime | None = Field(default=None, description="Last update timestamp.")
 
 
 def _empty_str_to_none(value: str | None) -> str | None:

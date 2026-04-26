@@ -120,9 +120,7 @@ def _stable_operation_id(route: _FastAPIRoute) -> str:
     first non-tag tag (or path) and function name. Stable IDs are the
     contract between the OpenAPI spec and generated SDKs — without them,
     every spec regen breaks consumer code."""
-    domain_tags = [
-        t for t in (route.tags or []) if t not in {APITag.public, APITag.internal}
-    ]
+    domain_tags = [t for t in (route.tags or []) if t not in {APITag.public, APITag.internal}]
     prefix = domain_tags[0] if domain_tags else "default"
     return f"{prefix}-{route.name}".lower().replace("_", "-")
 

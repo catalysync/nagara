@@ -5,7 +5,9 @@ from nagara.kit.redis import create_redis
 
 def _redis_available() -> bool:
     import asyncio
+
     try:
+
         async def _ping():
             r = create_redis()
             try:

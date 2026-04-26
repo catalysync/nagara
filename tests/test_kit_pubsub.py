@@ -1,4 +1,3 @@
-import asyncio
 from uuid import uuid4
 
 from nagara.kit.pubsub import PubSub

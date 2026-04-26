@@ -24,7 +24,9 @@ def progress_event(data: Any, *, id: str | None = None) -> str:
 
 
 def complete_event(data: Any = None, *, id: str | None = None) -> str:
-    return format_event(data if data is not None else {"status": "complete"}, event="complete", id=id)
+    return format_event(
+        data if data is not None else {"status": "complete"}, event="complete", id=id
+    )
 
 
 def error_event(message: str, *, id: str | None = None, **extra: Any) -> str:

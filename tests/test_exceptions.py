@@ -18,7 +18,6 @@ from nagara.exceptions import (
     _camel_to_snake,
 )
 
-
 # ── _camel_to_snake helper ──────────────────────────────────────────────────
 
 
@@ -115,9 +114,11 @@ def test_unauthorized_caller_headers_merged():
 
 
 def test_validation_failed_accepts_dict_errors():
-    e = ValidationFailed(errors=[
-        {"loc": ("body", "email"), "msg": "already taken", "type": "value_error.unique"},
-    ])
+    e = ValidationFailed(
+        errors=[
+            {"loc": ("body", "email"), "msg": "already taken", "type": "value_error.unique"},
+        ]
+    )
     assert len(e.errors) == 1
     assert isinstance(e.errors[0], FieldError)
     assert e.errors[0].loc == ("body", "email")

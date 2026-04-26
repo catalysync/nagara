@@ -10,7 +10,6 @@ from pydantic import ValidationError
 
 from nagara.config import Environment, Settings
 
-
 # ── Numeric bounds ─────────────────────────────────────────────────────────
 
 

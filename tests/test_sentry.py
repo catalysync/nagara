@@ -46,9 +46,10 @@ def test_before_send_keeps_event_with_no_tags():
 
 
 def test_mark_typed_error_sets_tag_and_context():
-    with patch("nagara.sentry.sentry_sdk.set_tag") as tag_mock, patch(
-        "nagara.sentry.sentry_sdk.set_context"
-    ) as ctx_mock:
+    with (
+        patch("nagara.sentry.sentry_sdk.set_tag") as tag_mock,
+        patch("nagara.sentry.sentry_sdk.set_context") as ctx_mock,
+    ):
         mark_typed_error(NotFound("missing"))
         tag_mock.assert_called_once_with("nagara_typed_error", "true")
         ctx_mock.assert_called_once()

@@ -12,7 +12,6 @@ import structlog
 
 from nagara.config import settings
 
-
 Logger = structlog.stdlib.BoundLogger
 
 
@@ -81,10 +80,7 @@ def configure_logging() -> None:
                     "level": level,
                     "propagate": False,
                 },
-                **{
-                    name: {"handlers": [], "propagate": True}
-                    for name in _THIRD_PARTY_LOGGERS
-                },
+                **{name: {"handlers": [], "propagate": True} for name in _THIRD_PARTY_LOGGERS},
             },
         }
     )

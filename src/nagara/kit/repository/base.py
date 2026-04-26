@@ -16,6 +16,7 @@ Compose mixins by inheritance order::
 
 from __future__ import annotations
 
+import contextlib
 from collections.abc import Sequence
 from datetime import datetime
 from enum import StrEnum
@@ -65,9 +66,7 @@ class RepositoryBase[M: _ModelID[Any]]:
         return result.scalars().unique().all()
 
     async def get_by_id(self, id: Any) -> M | None:
-        return await self.get_one_or_none(
-            self.get_base_statement().where(self.model.id == id)
-        )
+        return await self.get_one_or_none(self.get_base_statement().where(self.model.id == id))
 
     async def count(self, statement: Select[tuple[M]]) -> int:
         count_stmt = select(func.count()).select_from(count_subquery(statement))
@@ -101,10 +100,8 @@ class RepositoryBase[M: _ModelID[Any]]:
                 # Force SQLAlchemy to include the column in UPDATE even when
                 # the new value equals the old — needed for JSON columns
                 # whose in-place mutations the ORM can't auto-detect.
-                try:
+                with contextlib.suppress(KeyError):
                     flag_modified(object, attr)
-                except KeyError:
-                    pass
         self.session.add(object)
         if flush:
             await self.session.flush()

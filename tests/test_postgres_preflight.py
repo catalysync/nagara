@@ -35,9 +35,11 @@ async def test_passes_when_server_version_meets_minimum():
 
 
 async def test_raises_when_server_version_below_minimum():
-    with patch("nagara.main._get_probe_engine", return_value=_stub_engine(140002)):
-        with pytest.raises(RuntimeError, match="major version 14"):
-            await _check_postgres_version(None)  # type: ignore[arg-type]
+    with (
+        patch("nagara.main._get_probe_engine", return_value=_stub_engine(140002)),
+        pytest.raises(RuntimeError, match="major version 14"),
+    ):
+        await _check_postgres_version(None)  # type: ignore[arg-type]
 
 
 async def test_skipped_when_min_version_zero():
@@ -45,7 +47,9 @@ async def test_skipped_when_min_version_zero():
 
     # Use temporary_settings rather than monkeypatching the module singleton —
     # consistent with the rest of the suite and respects the contextvar scope.
-    with temporary_settings(POSTGRES_MIN_VERSION=0):
-        with patch("nagara.main._get_probe_engine") as get_eng:
-            await _check_postgres_version(None)  # type: ignore[arg-type]
+    with (
+        temporary_settings(POSTGRES_MIN_VERSION=0),
+        patch("nagara.main._get_probe_engine") as get_eng,
+    ):
+        await _check_postgres_version(None)  # type: ignore[arg-type]
     get_eng.assert_not_called()

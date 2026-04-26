@@ -10,8 +10,6 @@ from __future__ import annotations
 import functools
 import logging
 
-_BOOT_TIME: float = time.monotonic()
-
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -39,6 +37,8 @@ from nagara.middleware import (
 )
 from nagara.rate_limit import limiter, rate_limit_exceeded_handler
 from nagara.sentry import configure_sentry, mark_typed_error
+
+_BOOT_TIME: float = time.monotonic()
 
 configure_logging()
 configure_sentry()

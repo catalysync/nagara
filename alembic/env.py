@@ -43,10 +43,11 @@ def include_object(obj, name, type_, reflected, compare_to):
     extension tables, partitions handled by triggers, etc. Without this,
     autogenerate would emit DROP statements for them on every revision.
     """
-    if type_ in ("table", "index") and getattr(obj, "info", None):
-        if obj.info.get("skip_autogenerate"):
-            return False
-    return True
+    return not (
+        type_ in ("table", "index")
+        and getattr(obj, "info", None)
+        and obj.info.get("skip_autogenerate")
+    )
 
 
 def run_migrations_offline() -> None:
