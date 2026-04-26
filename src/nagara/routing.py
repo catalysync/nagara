@@ -109,8 +109,23 @@ class IncludedInSchemaAPIRoute(_FastAPIRoute):
             self.include_in_schema = False
 
 
+def _stable_operation_id(route: _FastAPIRoute) -> str:
+    """Generate a stable, kebab-case OpenAPI operation id from the route's
+    first non-tag tag (or path) and function name. Stable IDs are the
+    contract between the OpenAPI spec and generated SDKs — without them,
+    every spec regen breaks consumer code."""
+    domain_tags = [
+        t for t in (route.tags or []) if t not in {APITag.public, APITag.internal}
+    ]
+    prefix = domain_tags[0] if domain_tags else "default"
+    return f"{prefix}-{route.name}".lower().replace("_", "-")
+
+
 class APIRoute(AutoCommitAPIRoute, IncludedInSchemaAPIRoute):
-    pass
+    def __init__(self, path: str, endpoint: Callable[..., Any], **kwargs: Any) -> None:
+        super().__init__(path, endpoint, **kwargs)
+        if not kwargs.get("operation_id"):
+            self.operation_id = _stable_operation_id(self)
 
 
 class APIRouter(_FastAPIRouter):
