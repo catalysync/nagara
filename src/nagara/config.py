@@ -200,6 +200,16 @@ class Settings(BaseSettings):
         ge=1024,
         description="Reject requests whose Content-Length exceeds this many bytes with 413.",
     )
+    REQUEST_CANCEL_POLL_SECONDS: float = Field(
+        default=0.1,
+        gt=0,
+        le=5,
+        description=(
+            "How often RequestCancelledMiddleware checks for client disconnect. "
+            "Lower = faster cancel detection, higher CPU; the default 100ms is a "
+            "tradeoff between disconnect-detection latency and polling overhead."
+        ),
+    )
     POSTGRES_MIN_VERSION: int = Field(
         default=15,
         ge=0,
