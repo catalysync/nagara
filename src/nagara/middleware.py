@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 import re
-import time
 import uuid
 from collections.abc import Iterable
 from contextvars import ContextVar
@@ -23,25 +22,6 @@ request_id_var: ContextVar[str] = ContextVar("request_id", default="")
 # injection — fall back to a fresh UUID rather than echo back unbounded.
 _RID_RE = re.compile(r"^[A-Za-z0-9_.-]{1,128}$")
 
-
-_last_request_at: float = time.monotonic()
-
-
-def get_last_request_at() -> float:
-    """Monotonic timestamp of the most recent request through
-    :class:`LastRequestAtMiddleware`. Used by ``/health/idle`` to compute
-    seconds-since-last-traffic for spot/serverless autoscaling."""
-    return _last_request_at
-
-
-class LastRequestAtMiddleware(BaseHTTPMiddleware):
-    """Stamp the global ``_last_request_at`` on every request so the idle
-    health endpoint can advise shutdown when traffic drops to zero."""
-
-    async def dispatch(self, request: Request, call_next):  # type: ignore[override]
-        global _last_request_at
-        _last_request_at = time.monotonic()
-        return await call_next(request)
 
 
 _DEFAULT_SECURITY_HEADERS = {

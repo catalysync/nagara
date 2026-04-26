@@ -14,40 +14,23 @@ client = TestClient(app)
 
 
 def test_health_alias_returns_ok():
+    from nagara.config import settings
+
     response = client.get("/health")
     assert response.status_code == 200
     body = response.json()
     assert body["status"] == "ok"
-    assert "version" in body
-    assert isinstance(body["uptime_seconds"], int)
-    assert body["uptime_seconds"] >= 0
+    assert body["version"] == settings.RELEASE_VERSION
 
 
 def test_health_live_returns_ok():
+    from nagara.config import settings
+
     response = client.get("/health/live")
     assert response.status_code == 200
     body = response.json()
     assert body["status"] == "ok"
-    assert "version" in body
-    assert "uptime_seconds" in body
-
-
-def test_health_idle_disabled_by_default():
-    response = client.get("/health/idle")
-    assert response.status_code == 404
-    assert response.json()["detail"] == "idle endpoint disabled"
-
-
-def test_health_idle_when_enabled(monkeypatch):
-    from nagara.config import settings
-
-    monkeypatch.setattr(settings, "IDLE_TIMEOUT_SECONDS", 60)
-    response = client.get("/health/idle")
-    assert response.status_code == 200
-    body = response.json()
-    assert "idle_seconds" in body
-    assert body["timeout_seconds"] == 60
-    assert isinstance(body["should_shutdown"], bool)
+    assert body["version"] == settings.RELEASE_VERSION
 
 
 def test_health_ready_returns_503_when_db_unreachable():

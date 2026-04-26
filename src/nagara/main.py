@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import functools
 import logging
-import time
 
 _BOOT_TIME: float = time.monotonic()
 
@@ -33,11 +32,9 @@ from nagara.logging import configure_logging
 from nagara.middleware import (
     ContentSizeLimitMiddleware,
     ForwardedPrefixMiddleware,
-    LastRequestAtMiddleware,
     RequestCancelledMiddleware,
     RequestIDMiddleware,
     SecurityHeadersMiddleware,
-    get_last_request_at,
     request_id_var,
 )
 from nagara.rate_limit import limiter, rate_limit_exceeded_handler
@@ -122,7 +119,6 @@ def create_app() -> FastAPI:
     if settings.TRUST_PROXY:
         app.add_middleware(ForwardedPrefixMiddleware)
     app.add_middleware(SecurityHeadersMiddleware)
-    app.add_middleware(LastRequestAtMiddleware)
     app.add_middleware(RequestCancelledMiddleware)
     app.add_middleware(ContentSizeLimitMiddleware, max_bytes=settings.REQUEST_MAX_BYTES)
     app.add_middleware(RequestIDMiddleware)
@@ -179,12 +175,8 @@ def create_app() -> FastAPI:
         return {"hello": "world"}
 
     @app.get("/health/live", tags=["health"])
-    def health_live() -> dict[str, object]:
-        return {
-            "status": "ok",
-            "version": settings.RELEASE_VERSION,
-            "uptime_seconds": int(time.monotonic() - _BOOT_TIME),
-        }
+    def health_live() -> dict[str, str]:
+        return {"status": "ok", "version": settings.RELEASE_VERSION}
 
     @app.get("/health/ready", tags=["health"])
     async def health_ready() -> JSONResponse:
@@ -200,25 +192,8 @@ def create_app() -> FastAPI:
         return JSONResponse(status_code=200, content={"status": "ready"})
 
     @app.get("/health", tags=["health"])
-    def health() -> dict[str, object]:
+    def health() -> dict[str, str]:
         return health_live()
-
-    @app.get("/health/idle", tags=["health"])
-    def health_idle() -> JSONResponse:
-        if settings.IDLE_TIMEOUT_SECONDS == 0:
-            return JSONResponse(
-                status_code=status.HTTP_404_NOT_FOUND,
-                content={"detail": "idle endpoint disabled"},
-            )
-        idle = int(time.monotonic() - get_last_request_at())
-        return JSONResponse(
-            status_code=200,
-            content={
-                "idle_seconds": idle,
-                "timeout_seconds": settings.IDLE_TIMEOUT_SECONDS,
-                "should_shutdown": idle >= settings.IDLE_TIMEOUT_SECONDS,
-            },
-        )
 
     return app
 
