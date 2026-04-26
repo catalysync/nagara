@@ -1,27 +1,12 @@
 """FastAPI lifespan registry.
 
-Core emits startup/shutdown callbacks through a global registry. Downstream
-code that composes this package — an internal deployment, a third-party
-wrapper, an integration layer — registers itself with ``@on_startup`` /
-``@on_shutdown`` to plug in its :class:`FeatureResolver`, event subscribers,
-external clients, background workers, and so on.
-
-``nagara.main`` builds the app's lifespan context from the current contents
-of these registries. Downstream consumers typically import ``nagara.main:app``
-and register hooks before the app starts serving rather than building their
-own app.
+Modules register startup/shutdown callbacks with ``@on_startup`` /
+``@on_shutdown``; ``nagara.main`` reads those registries when building the
+app's lifespan context.
 
 Example::
 
-    # downstream/__init__.py — imported before the app starts
-    from nagara.lifespan import on_startup, on_shutdown
-    from nagara.events import get_bus, WorkspaceCreated
-    from nagara.features import set_resolver
-
-    @on_startup
-    async def wire(_app):
-        set_resolver(MyResolver())
-        get_bus().subscribe(WorkspaceCreated, my_handler)
+    from nagara.lifespan import on_shutdown
 
     @on_shutdown
     async def drain(_app):
