@@ -1,11 +1,26 @@
 [project]
 name = "nagara"
 version = "0.1.0"
-description = ""
+description = "Your operating system for data."
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
 authors = [
     { name = "Oluwadamilola Ifedayo", email = "dami.func@gmail.com" }
 ]
 requires-python = ">=3.14"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Framework :: FastAPI",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Software Development :: Libraries :: Application Frameworks",
+    "Typing :: Typed",
+]
+
 dependencies = [
     "alembic>=1.18.4",
     "asyncpg>=0.31.0",
@@ -19,6 +34,13 @@ dependencies = [
     "structlog>=25.0.0",
     "uvicorn[standard]>=0.44.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/catalysync/nagara"
+Repository = "https://github.com/catalysync/nagara"
+Issues = "https://github.com/catalysync/nagara/issues"
+Changelog = "https://github.com/catalysync/nagara/blob/main/CHANGELOG.md"
+Documentation = "https://github.com/catalysync/nagara/tree/main/docs"
 
 [build-system]
 requires = ["uv_build>=0.11.7,<0.12.0"]

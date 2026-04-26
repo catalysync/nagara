@@ -1,7 +1,6 @@
 # nagara — Development Guide
 
-FastAPI / SQLAlchemy / Postgres backend. Single-process today; designed
-to scale to multi-replica behind a load balancer.
+> Your operating system for data.
 
 ## Quick commands
 
@@ -24,7 +23,7 @@ src/nagara/
 ├── config.py          Layered settings (env > .env > TOML > defaults)
 ├── exceptions.py      Typed NagaraError envelope (BadRequest/NotFound/...)
 ├── routing.py         APIRouter with autocommit + APITag filter
-├── middleware.py      Request-ID + Content-Size middleware + log filter
+├── middleware.py      Request-ID, content-size, security-headers, request-cancel, multipart, query-flatten
 ├── logging.py         structlog + dev/prod renderers
 ├── lifespan.py        @on_startup / @on_shutdown registries
 ├── rate_limit.py      slowapi limiter (Redis-backed)
@@ -195,7 +194,7 @@ uv run pytest tests/test_<module>.py -k <name>  # one test
 ## Adding a new domain module
 
 1. `mkdir src/nagara/{module}` with `__init__.py`, `model.py`, `schemas.py`, `repository.py`, `service.py`, `routes.py`
-2. Define ORM model in `model.py` — subclass `Base` from `nagara.db`, use `UUIDPrimaryKeyMixin` + `TimestampedMixin` from `nagara.db.mixins`
+2. Define ORM model in `model.py` — subclass the declarative `Base` from `nagara.db`
 3. Generate migration: `uv run alembic revision --autogenerate -m "add {module} table"`
 4. Define Pydantic schemas in `schemas.py` — subclass `Schema` / `IDSchema` / `TimestampedSchema` from `nagara.kit.schemas`
 5. Write repository in `repository.py` — subclass `RepositoryBase[Model]` from `nagara.kit.repository`
