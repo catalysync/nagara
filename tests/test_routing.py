@@ -96,9 +96,10 @@ async def test_autocommit_wrapper_finds_session_in_positional_args():
     mock_session.commit.assert_awaited_once()
 
 
-def test_internal_routes_hidden_in_production_mode(monkeypatch):
-    from nagara.config import settings
-    monkeypatch.setattr(settings, "ENV", type(settings.ENV)("production"))
-    paths = sorted(_build_app().openapi()["paths"].keys())
+def test_internal_routes_hidden_in_production_mode():
+    from nagara.config import Environment, temporary_settings
+
+    with temporary_settings(ENV=Environment.production):
+        paths = sorted(_build_app().openapi()["paths"].keys())
     assert "/_public" in paths
     assert "/_internal" not in paths

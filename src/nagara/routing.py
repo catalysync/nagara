@@ -25,7 +25,7 @@ from fastapi import APIRouter as _FastAPIRouter
 from fastapi.routing import APIRoute as _FastAPIRoute
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from nagara.config import settings
+from nagara.config import get_current_settings
 
 
 class APITag(StrEnum):
@@ -37,10 +37,17 @@ class APITag(StrEnum):
 
 class AutoCommitAPIRoute(_FastAPIRoute):
     """Commit the first ``AsyncSession`` argument right after the endpoint
-    returns, before FastAPI serializes the response. If a handler takes
-    multiple sessions (read replica + write split), only the first is
-    committed here — the rest must be committed inside the handler or
-    via a downstream dependency.
+    returns, before FastAPI serializes the response.
+
+    Caveats:
+      * Only the **first** AsyncSession argument is committed — handlers
+        that take read+write sessions (replica split) must commit the
+        rest themselves.
+      * The commit happens **after** the handler returns. If commit
+        raises (e.g., constraint violation), the exception propagates
+        as ``IntegrityError``, NOT the typed ``Conflict`` the handler
+        might have intended. Catch + re-raise inside the handler when
+        you want a typed error.
 
     The wrapper is here so handlers can return raw ORM objects whose
     attributes might lazy-load during serialization without the session
@@ -95,7 +102,7 @@ class IncludedInSchemaAPIRoute(_FastAPIRoute):
             return
         tags = self.tags or []
         if APITag.internal in tags:
-            self.include_in_schema = settings.is_development()
+            self.include_in_schema = get_current_settings().is_development()
         elif APITag.public in tags:
             self.include_in_schema = True
         else:
