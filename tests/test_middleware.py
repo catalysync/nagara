@@ -141,6 +141,15 @@ def test_multipart_accepts_valid_boundary():
     assert r.status_code == 200
 
 
+def test_multipart_accepts_rfc2046_punctuation_in_boundary():
+    """RFC 2046 bcharsnospace allows '.', '+', '(', ')', '=', '?'."""
+    r = _multipart_app().post(
+        "/upload",
+        headers={"Content-Type": "multipart/form-data; boundary=----WebKitFormBoundary.7MA4YWxkTrZu0gW"},
+    )
+    assert r.status_code == 200
+
+
 def test_multipart_accepts_quoted_boundary_with_extra_params():
     """RFC-compliant: boundary may be quoted, and other params may follow."""
     r = _multipart_app().post(

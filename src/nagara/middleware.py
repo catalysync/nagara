@@ -141,7 +141,10 @@ class ContentSizeLimitMiddleware(BaseHTTPMiddleware):
         )
 
 
-_BOUNDARY_RE = re.compile(r"^[\w\-]{1,70}$")
+# RFC 2046 bcharsnospace: ALPHA / DIGIT / "'" "(" ")" "+" "_" "," "-" "." "/"
+# ":" "=" "?". Length 1–70. Spaces are technically permitted internally but
+# many parsers reject them, so we don't.
+_BOUNDARY_RE = re.compile(r"^[A-Za-z0-9'()+_,./:=?-]{1,70}$")
 
 
 def _parse_content_type(value: str) -> tuple[str, dict[str, str]]:
