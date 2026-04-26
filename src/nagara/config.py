@@ -268,7 +268,7 @@ class Settings(BaseSettings):
     # ── Redis ───────────────────────────────────────────────────────────
     REDIS_URL: str = Field(
         default="redis://127.0.0.1:6379/0",
-        description="Redis DSN. Used by the rate limiter and any future cache/queue.",
+        description="Redis DSN used by the rate limiter.",
     )
 
     # ── Observability ───────────────────────────────────────────────────
@@ -290,23 +290,6 @@ class Settings(BaseSettings):
             return v
         env = info.data.get("ENV", Environment.development)
         return "DEBUG" if env == Environment.development else "INFO"
-
-    # Template for future deprecations — when a setting is renamed, keep a
-    # validator on the new name that watches for the old env var and emits a
-    # warning. Example (commented, no active deprecation right now)::
-    #
-    #     @field_validator("POSTGRES_PWD", mode="before")
-    #     @classmethod
-    #     def _warn_old_db_password(cls, v):
-    #         if os.environ.get("NAGARA_DB_PASSWORD") is not None:
-    #             import warnings
-    #             warnings.warn(
-    #                 "NAGARA_DB_PASSWORD is deprecated — rename to NAGARA_POSTGRES_PWD",
-    #                 DeprecationWarning,
-    #                 stacklevel=2,
-    #             )
-    #             return os.environ["NAGARA_DB_PASSWORD"]
-    #         return v
 
     model_config = SettingsConfigDict(
         env_prefix="nagara_",

@@ -42,7 +42,7 @@ structured 4xx with a `request_id`.
 - **Python 3.14** with [uv](https://github.com/astral-sh/uv) for env management
 - **FastAPI** + custom `APIRouter` (auto-commit + OpenAPI tag filtering)
 - **PostgreSQL** via SQLAlchemy 2 + asyncpg (async) and psycopg2 (sync, for migrations)
-- **Redis** for rate limiting and (eventually) cache + queue
+- **Redis** for rate limiting
 - **MinIO** in dev, S3-compatible in prod, for file storage
 - **Alembic** for migrations (datetime-prefixed, autoformatted)
 - **structlog** with dev/prod renderers (pretty console / JSON)

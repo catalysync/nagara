@@ -13,9 +13,9 @@ logger = logging.getLogger(__name__)
 
 class PubSub[K]:
     def __init__(self, maxsize: int = 0) -> None:
-        # ``maxsize=0`` keeps the legacy unbounded behaviour. Pass a positive
-        # int to cap each subscriber's buffer; a slow consumer then drops new
-        # events instead of pinning memory.
+        # maxsize=0 means unbounded. Pass a positive int to cap each
+        # subscriber's buffer; a slow consumer then drops new events instead
+        # of pinning memory.
         self._maxsize = maxsize
         self._queues: dict[K, list[asyncio.Queue[Any]]] = {}
 
