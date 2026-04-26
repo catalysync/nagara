@@ -66,10 +66,10 @@ get formatted by ruff automatically.
 
 ## Tests
 
-Tests run against in-memory SQLite for model-level and endpoint-level cases
-(see `tests/conftest.py`). Anything that exercises Postgres-only behavior
-(jsonb operators, partial indexes, `inet` columns) needs a separate fixture
-pointing at the live Postgres — add those alongside the relevant module.
+The suite is mostly hermetic — settings/middleware/routing/exception/kit
+tests run with no external services. The rate-limit and postgres-preflight
+tests need real Redis and Postgres respectively (`just bootstrap` brings
+them up).
 
 ```bash
 just test                         # full suite
@@ -77,10 +77,6 @@ uv run pytest tests/test_foo.py   # single file
 uv run pytest -k "slug"           # match by name
 uv run pytest -x                  # stop at first failure
 ```
-
-The suite currently runs in <10s. Keep it that way by favoring SQLite-backed
-fixtures where possible and opting into Postgres only when you need
-Postgres-specific SQL.
 
 ## Code quality
 
@@ -115,8 +111,8 @@ chars, no prefix scopes, no AI-attribution footers.
 ## Project structure
 
 ```
-src/nagara/            backend package (API, models, auth, outbox, …)
-frontend/              Next.js 15 + Tailwind v4 + mizu consumer
+src/nagara/            backend package (config, middleware, routing, kit, …)
+frontend/              Next.js 15 + Tailwind v4 scaffold
 alembic/               Alembic migration chain
 deploy/helm/           Helm chart for k8s deploy
 docs/                  This directory
@@ -126,4 +122,4 @@ tests/                 pytest suite
 ## Getting help
 
 - Open an issue on GitHub.
-- Check the planning docs under [`nagara-planning/`](https://github.com/catalysync/nagara-planning) for architecture background.
+- Read [`CLAUDE.md`](../CLAUDE.md) for module conventions and the kit/ split.
