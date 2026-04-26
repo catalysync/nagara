@@ -71,6 +71,23 @@ def test_route_decorated_with_limit_returns_429_after_quota():
     assert statuses[2:] == [429, 429]
 
 
+def test_retry_after_honors_window_multiplier():
+    """A '1/5 minute' bucket should advertise Retry-After=300, not 60."""
+    from limits import parse
+
+    rate = parse("1/5 minutes")
+    fake_wrapper = Mock(error_message="1 per 5 minute")
+    fake_wrapper.limit = rate
+    exc = RateLimitExceeded(fake_wrapper)
+    exc.detail = "1 per 5 minute"  # type: ignore[attr-defined]
+
+    request = Mock(spec=Request)
+    request.state = Mock(request_id="rid-1")
+
+    response = rate_limit_exceeded_handler(request, exc)
+    assert response.headers["retry-after"] == "300"
+
+
 def test_429_response_carries_retry_after():
     app = FastAPI()
     app.state.limiter = limiter

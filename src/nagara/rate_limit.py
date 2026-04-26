@@ -37,8 +37,8 @@ def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded) -> JSO
     # most clients expect as a sane default cooldown.
     retry_after = 60
     try:
-        granularity = exc.limit.limit.GRANULARITY  # type: ignore[attr-defined]
-        retry_after = int(granularity.seconds)
+        rate = exc.limit.limit  # type: ignore[attr-defined]
+        retry_after = int(rate.GRANULARITY.seconds * rate.multiples)
     except Exception:
         pass
     return JSONResponse(
