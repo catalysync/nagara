@@ -9,6 +9,7 @@ from slowapi.util import get_remote_address
 from nagara.config import settings
 from nagara.middleware import request_id_var
 
+
 def _client_key(request: Request) -> str:
     """Rate-limit key. Honors the leftmost ``X-Forwarded-For`` entry when
     the deploy declares it sits behind a trusted proxy — otherwise the
@@ -20,7 +21,6 @@ def _client_key(request: Request) -> str:
             if client:
                 return client
     return get_remote_address(request)
-
 
 
 limiter = Limiter(

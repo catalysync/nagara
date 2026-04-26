@@ -23,7 +23,6 @@ request_id_var: ContextVar[str] = ContextVar("request_id", default="")
 _RID_RE = re.compile(r"^[A-Za-z0-9_.-]{1,128}$")
 
 
-
 _DEFAULT_SECURITY_HEADERS = {
     "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
     "X-Content-Type-Options": "nosniff",
@@ -53,7 +52,6 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         for name, value in self._headers.items():
             response.headers.setdefault(name, value)
         return response
-
 
 
 class RequestIDMiddleware(BaseHTTPMiddleware):
