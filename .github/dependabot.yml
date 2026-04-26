@@ -1,14 +1,8 @@
 version: 2
+# Python deps are managed by .github/workflows/uv-upgrade.yml — Dependabot's
+# `pip` ecosystem can't update uv.lock, so it would open PRs that always fail
+# CI on lock drift. Everything else (npm, GHA, docker) is fine here.
 updates:
-  - package-ecosystem: "pip"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-    open-pull-requests-limit: 5
-    groups:
-      python-minor-and-patch:
-        update-types: ["minor", "patch"]
-
   - package-ecosystem: "npm"
     directory: "/frontend"
     schedule:

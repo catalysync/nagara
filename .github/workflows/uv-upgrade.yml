@@ -1,0 +1,38 @@
+name: uv-upgrade
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  upgrade:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: upgrade lockfile
+        run: uv lock --upgrade
+
+      - name: open pull request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: deps/uv-lock-upgrade
+          title: "weekly uv lock --upgrade"
+          commit-message: "weekly uv lock --upgrade"
+          body: |
+            Automated weekly run of `uv lock --upgrade`. Bumps any
+            transitive Python dependencies whose pinned version in
+            `uv.lock` is no longer the latest compatible.
+
+            CI exercises the upgraded lock — merge if green.
+          delete-branch: true
