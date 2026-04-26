@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import re
+import time
 import uuid
 from collections.abc import Iterable
 from contextvars import ContextVar
@@ -21,6 +22,57 @@ request_id_var: ContextVar[str] = ContextVar("request_id", default="")
 # longer or with control chars is almost certainly an attempt at log/header
 # injection — fall back to a fresh UUID rather than echo back unbounded.
 _RID_RE = re.compile(r"^[A-Za-z0-9_.-]{1,128}$")
+
+
+_last_request_at: float = time.monotonic()
+
+
+def get_last_request_at() -> float:
+    """Monotonic timestamp of the most recent request through
+    :class:`LastRequestAtMiddleware`. Used by ``/health/idle`` to compute
+    seconds-since-last-traffic for spot/serverless autoscaling."""
+    return _last_request_at
+
+
+class LastRequestAtMiddleware(BaseHTTPMiddleware):
+    """Stamp the global ``_last_request_at`` on every request so the idle
+    health endpoint can advise shutdown when traffic drops to zero."""
+
+    async def dispatch(self, request: Request, call_next):  # type: ignore[override]
+        global _last_request_at
+        _last_request_at = time.monotonic()
+        return await call_next(request)
+
+
+_DEFAULT_SECURITY_HEADERS = {
+    "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+    "Permissions-Policy": "geolocation=(), microphone=(), camera=()",
+}
+
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """Inject browser-hardening headers on every response. Defaults follow
+    OWASP guidance for an API that doesn't render its own HTML — no CSP
+    by default since most API responses are JSON; add one when shipping
+    a server-rendered page."""
+
+    def __init__(
+        self,
+        app: ASGIApp,
+        *,
+        headers: dict[str, str] | None = None,
+    ) -> None:
+        super().__init__(app)
+        self._headers = headers if headers is not None else dict(_DEFAULT_SECURITY_HEADERS)
+
+    async def dispatch(self, request: Request, call_next):  # type: ignore[override]
+        response: Response = await call_next(request)
+        for name, value in self._headers.items():
+            response.headers.setdefault(name, value)
+        return response
 
 
 
