@@ -5,6 +5,7 @@ import re
 import uuid
 from collections.abc import Iterable
 from contextvars import ContextVar
+from email.message import Message
 from urllib.parse import urlencode
 
 import structlog
@@ -149,18 +150,21 @@ _BOUNDARY_RE = re.compile(r"^[A-Za-z0-9'()+_,./:=?-]{1,70}$")
 
 def _parse_content_type(value: str) -> tuple[str, dict[str, str]]:
     """Parse a Content-Type header into (media_type, params).
-    Handles ``multipart/form-data; boundary=abc; charset=UTF-8`` and
-    quoted-string boundaries per RFC 7231 / 9112."""
+
+    Delegates to :class:`email.message.Message` so RFC 7231 quoted-string
+    parameters with embedded ``;`` (e.g. ``boundary="abc;def"``) parse
+    correctly.
+    """
     if not value:
         return "", {}
-    parts = [p.strip() for p in value.split(";")]
-    media_type = parts[0].lower()
-    params: dict[str, str] = {}
-    for part in parts[1:]:
-        if "=" not in part:
-            continue
-        k, _, v = part.partition("=")
-        params[k.strip().lower()] = v.strip().strip('"')
+    msg = Message()
+    msg["Content-Type"] = value
+    media_type = (msg.get_content_type() or "").lower()
+    params: dict[str, str] = {
+        k.lower(): v
+        for k, v in msg.get_params(failobj=[])
+        if k.lower() != media_type
+    }
     return media_type, params
 
 
