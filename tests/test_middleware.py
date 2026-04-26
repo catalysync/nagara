@@ -238,3 +238,44 @@ def test_request_cancelled_middleware_passes_normal_request():
     r = c.get("/quick")
     assert r.status_code == 200
     assert r.json() == {"ok": True}
+
+
+async def test_request_cancelled_middleware_returns_499_on_disconnect():
+    """Mock ``request.is_disconnected`` to flip True after a tick, while the
+    handler sleeps. The middleware should cancel the handler and respond 499."""
+    import asyncio
+    from unittest.mock import AsyncMock, patch
+
+    app = FastAPI()
+    app.add_middleware(RequestCancelledMiddleware, poll_seconds=0.01)
+
+    @app.get("/slow")
+    async def slow():
+        await asyncio.sleep(5)
+        return {"ok": True}
+
+    c = TestClient(app)
+
+    # Use httpx ASGI transport; patch is_disconnected so it flips True quickly.
+    state = {"disconnected": False}
+
+    async def fake_is_disconnected(self):
+        if state["disconnected"]:
+            return True
+        return False
+
+    async def trigger_disconnect():
+        await asyncio.sleep(0.05)
+        state["disconnected"] = True
+
+    with patch("starlette.requests.Request.is_disconnected", fake_is_disconnected):
+        # Run trigger and the request concurrently in the AnyIO transport.
+        # TestClient is sync but the middleware uses asyncio internally; the
+        # patched is_disconnected runs inside the same loop.
+        task = asyncio.create_task(trigger_disconnect())
+        from httpx import ASGITransport, AsyncClient
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+            r = await ac.get("/slow")
+        await task
+
+    assert r.status_code == 499
