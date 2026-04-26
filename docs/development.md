@@ -109,18 +109,8 @@ See [deployment.md](./deployment.md) for the full deploy path.
 
 ## Commit conventions
 
-- Lowercase, ≤50 characters
-- Conventional Commit prefix (`feat:`, `fix:`, `chore:`, `docs:`, `refactor:`,
-  `test:`, `perf:`, `ci:`, `build:`) is optional but strongly encouraged —
-  `release-please` uses it to auto-generate release notes and bump versions
-- No AI-attribution footers
-- No trailing period on the subject line
-
-Examples:
-- `feat: add outbox pattern`
-- `fix: dedupe billing webhooks`
-- `add org model`  (acceptable — unprefixed, short)
-- ~~`feat: add a whole bunch of stuff for the outbox and billing`~~  (too long)
+See [CONTRIBUTING.md](../CONTRIBUTING.md#commit-style) — lowercase, ≤30
+chars, no prefix scopes, no AI-attribution footers.
 
 ## Project structure
 
