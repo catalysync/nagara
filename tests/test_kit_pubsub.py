@@ -70,6 +70,29 @@ async def test_keys_can_be_any_hashable():
     assert out == ["answer"]
 
 
+async def test_bounded_queue_drops_overflow_events():
+    bus: PubSub = PubSub(maxsize=2)
+    topic = "bounded"
+    sub = bus.subscribe(topic)
+    await bus.publish(topic, "a")
+    await bus.publish(topic, "b")
+    await bus.publish(topic, "c")  # dropped, queue full
+    await bus.publish(topic, "d")  # dropped, queue full
+    bus.close(topic)
+    received = [ev async for ev in sub]
+    assert received == ["a", "b"]
+
+
+async def test_bounded_close_still_signals_end_of_stream():
+    bus: PubSub = PubSub(maxsize=1)
+    topic = "bounded-close"
+    sub = bus.subscribe(topic)
+    await bus.publish(topic, "a")
+    bus.close(topic)  # queue is full but close must still wake the iterator
+    received = [ev async for ev in sub]
+    assert received == ["a"]
+
+
 async def test_close_drops_topic_from_registry():
     bus: PubSub = PubSub()
     topic = "drop"
