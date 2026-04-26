@@ -1,16 +1,46 @@
 [project]
 name = "nagara"
 version = "0.1.0"
-description = ""
+description = "Your operating system for data."
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
 authors = [
     { name = "Oluwadamilola Ifedayo", email = "dami.func@gmail.com" }
 ]
 requires-python = ">=3.14"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Framework :: FastAPI",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Software Development :: Libraries :: Application Frameworks",
+    "Typing :: Typed",
+]
+
 dependencies = [
+    "alembic>=1.18.4",
+    "asyncpg>=0.31.0",
     "fastapi>=0.136.0",
+    "psycopg2-binary>=2.9.12",
     "pydantic-settings>=2.14.0",
+    "redis>=5.0.0",
+    "sentry-sdk[fastapi]>=2.20.0",
+    "slowapi>=0.1.9",
+    "sqlalchemy[asyncio]>=2.0.49",
+    "structlog>=25.0.0",
     "uvicorn[standard]>=0.44.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/catalysync/nagara"
+Repository = "https://github.com/catalysync/nagara"
+Issues = "https://github.com/catalysync/nagara/issues"
+Changelog = "https://github.com/catalysync/nagara/blob/main/CHANGELOG.md"
+Documentation = "https://github.com/catalysync/nagara/tree/main/docs"
 
 [build-system]
 requires = ["uv_build>=0.11.7,<0.12.0"]
@@ -18,10 +48,29 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
+    "aiosqlite>=0.20.0",
+    "coverage[toml]>=7.6.0",
     "httpx>=0.28.1",
     "pytest>=9.0.3",
+    "pytest-asyncio>=1.3.0",
+    "pytest-cov>=6.0.0",
     "ruff>=0.15.11",
     "ty>=0.0.32",
+]
+
+[tool.coverage.run]
+source = ["src/nagara"]
+branch = true
+omit = ["src/nagara/cli/*", "*/__init__.py"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+exclude_lines = [
+    "pragma: no cover",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+    "if __name__ == .__main__.:",
 ]
 
 [tool.ruff]
@@ -34,3 +83,4 @@ select = ["E", "W", "F", "I", "B", "UP", "SIM"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = "test_*.py"
+asyncio_mode = "auto"

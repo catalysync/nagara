@@ -56,17 +56,10 @@ uv run ruff check --fix
 
 ## Layout
 
-```
-nagara/
-├── pyproject.toml         # project metadata, deps, tool configs
-├── uv.lock                # locked dep versions
-├── .python-version        # pinned Python version for uv
-├── .github/workflows/     # CI
-├── src/nagara/            # application package
-│   ├── __init__.py
-│   └── main.py            # FastAPI app entrypoint
-└── tests/                 # pytest tests
-```
+See [CLAUDE.md](./CLAUDE.md) for the module map. The short version: backend
+package at `src/nagara/` (config, middleware, routing, exceptions, kit/),
+Next.js scaffold at `frontend/`, helm chart at `deploy/helm/`, Alembic
+chain at `alembic/`, pytest suite at `tests/`.
 
 ## Contributing
 

@@ -94,3 +94,21 @@ def test_active_profile_name_reads_from_env_override(monkeypatch):
 def test_active_profile_name_falls_back_to_default(monkeypatch):
     monkeypatch.delenv("NAGARA_PROFILE", raising=False)
     assert active_profile_name(default="dev") == "dev"
+
+
+def test_active_profile_name_honors_store_active_when_no_env(monkeypatch):
+    """With no NAGARA_PROFILE, fall back to the store's persisted ``active``
+    rather than the kwarg default."""
+    monkeypatch.delenv("NAGARA_PROFILE", raising=False)
+    store = ProfileStore()
+    store.upsert(Profile(name="prod", overrides={}))
+    store.activate("prod")
+    assert active_profile_name(store=store, default="dev") == "prod"
+
+
+def test_active_profile_name_env_beats_store(monkeypatch):
+    monkeypatch.setenv("NAGARA_PROFILE", "ci")
+    store = ProfileStore()
+    store.upsert(Profile(name="prod", overrides={}))
+    store.activate("prod")
+    assert active_profile_name(store=store, default="dev") == "ci"

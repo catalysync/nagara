@@ -1,4 +1,4 @@
-"""Tests for validation aliases — legacy / unprefixed env var compat."""
+"""DATABASE_URL is accepted with or without the NAGARA_ prefix."""
 
 from __future__ import annotations
 

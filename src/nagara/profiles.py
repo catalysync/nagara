@@ -84,7 +84,10 @@ def save_profiles(store: ProfileStore, path: Path | str) -> None:
         lines.append("")
     for name in store.names():
         profile = store.get(name)
-        lines.append(f"[profiles.{name}]")
+        # Quote the section name so profiles like ``dev.local`` round-trip
+        # correctly instead of becoming a nested ``profiles.dev.local`` table.
+        escaped_name = name.replace("\\", "\\\\").replace('"', '\\"')
+        lines.append(f'[profiles."{escaped_name}"]')
         for key, value in profile.overrides.items():
             lines.append(f"{key} = {_toml_value(value)}")
         lines.append("")
@@ -103,14 +106,24 @@ def load_profiles(path: Path | str) -> ProfileStore:
         if isinstance(overrides, dict):
             store.upsert(Profile(name=name, overrides=dict(overrides)))
     active = data.get("active")
-    if isinstance(active, str) and active in store._profiles:
-        store._active = active
+    if isinstance(active, str) and active in store.names():
+        # Go through activate() so the membership guard runs — keeps the
+        # invariant that ``store._active`` always points at a real profile.
+        store.activate(active)
     return store
 
 
-def active_profile_name(*, default: str = "default") -> str:
-    """Return the active profile name, respecting the NAGARA_PROFILE env override."""
-    return os.environ.get("NAGARA_PROFILE") or default
+def active_profile_name(*, store: ProfileStore | None = None, default: str = "default") -> str:
+    """Return the active profile name. Resolution order:
+    ``NAGARA_PROFILE`` env var → ``store.active`` (if a store is given) →
+    ``default``. Matches the precedence used by ``TomlLayeredSource`` in
+    ``config.py``."""
+    env = os.environ.get("NAGARA_PROFILE")
+    if env:
+        return env
+    if store is not None and store.active is not None:
+        return store.active
+    return default
 
 
 def _toml_value(value: Any) -> str:
