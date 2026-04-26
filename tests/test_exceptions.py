@@ -183,9 +183,9 @@ def _build_app() -> TestClient:
     async def h(req: Request, exc: NagaraError):
         body = {"error": exc.error_code, "detail": exc.message}
         if isinstance(exc, ValidationFailed) and exc.errors:
-            body["errors"] = [e.model_dump() for e in exc.errors]
+            body["errors"] = [e.model_dump() for e in exc.errors]  # ty:ignore[invalid-assignment]
         if exc.extra:
-            body["extra"] = exc.extra
+            body["extra"] = exc.extra  # ty:ignore[invalid-assignment]
         return JSONResponse(status_code=exc.status_code, content=body, headers=exc.headers)
 
     @app.get("/nf")

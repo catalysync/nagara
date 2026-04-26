@@ -17,4 +17,4 @@ def hermetic_env(monkeypatch: pytest.MonkeyPatch):
     for key in list(os.environ):
         if key.startswith("NAGARA_"):
             monkeypatch.delenv(key, raising=False)
-    monkeypatch.setitem(Settings.model_config, "env_file", "/nonexistent/.env")
+    monkeypatch.setitem(Settings.model_config, "env_file", "/nonexistent/.env")  # ty:ignore[invalid-argument-type]

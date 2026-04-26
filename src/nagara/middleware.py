@@ -95,7 +95,7 @@ class RequestCancelledMiddleware(BaseHTTPMiddleware):
                     return
                 await asyncio.sleep(self._poll)
 
-        handler = asyncio.create_task(call_next(request))
+        handler = asyncio.create_task(call_next(request))  # ty:ignore[invalid-argument-type]
         watcher = asyncio.create_task(watch_disconnect())
 
         done, pending = await asyncio.wait([handler, watcher], return_when=asyncio.FIRST_COMPLETED)

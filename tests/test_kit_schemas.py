@@ -20,7 +20,7 @@ def test_id_schema_round_trips():
 
 def test_id_schema_rejects_non_uuid():
     with pytest.raises(ValidationError):
-        _User(id="not-a-uuid", name="x")
+        _User(id="not-a-uuid", name="x")  # ty:ignore[invalid-argument-type]
 
 
 def test_timestamped_schema_optional_updated_at():

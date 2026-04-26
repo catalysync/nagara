@@ -40,7 +40,7 @@ def test_rate_limit_handler_returns_envelope():
     response = rate_limit_exceeded_handler(request, exc)
     import json
 
-    body = json.loads(response.body)
+    body = json.loads(response.body)  # ty:ignore[invalid-argument-type]
     assert response.status_code == 429
     assert body["error"] == "rate_limit_exceeded"
     assert body["detail"] == "2 per 1 minute"
@@ -61,7 +61,7 @@ def test_rate_limit_handler_falls_back_request_id_dash():
     response = rate_limit_exceeded_handler(request, exc)
     import json
 
-    body = json.loads(response.body)
+    body = json.loads(response.body)  # ty:ignore[invalid-argument-type]
     assert body["request_id"] == "-"
 
 
@@ -69,7 +69,7 @@ def test_route_decorated_with_limit_returns_429_after_quota(reset_limits):
     """Integration: a decorated route returns 429 once quota exhausted."""
     app = FastAPI()
     app.state.limiter = limiter
-    app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
+    app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)  # ty:ignore[invalid-argument-type]
     app.add_middleware(RequestIDMiddleware)
 
     # Use a unique key per test run to avoid Redis state leakage
@@ -109,7 +109,7 @@ def test_retry_after_honors_window_multiplier():
 def test_429_response_carries_retry_after(reset_limits):
     app = FastAPI()
     app.state.limiter = limiter
-    app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
+    app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)  # ty:ignore[invalid-argument-type]
     app.add_middleware(RequestIDMiddleware)
 
     import uuid

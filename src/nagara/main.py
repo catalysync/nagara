@@ -115,7 +115,7 @@ def create_app() -> FastAPI:
     )
 
     app.state.limiter = limiter
-    app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
+    app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)  # ty:ignore[invalid-argument-type]
 
     if settings.TRUST_PROXY:
         app.add_middleware(ForwardedPrefixMiddleware)

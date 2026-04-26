@@ -123,7 +123,7 @@ class RepositorySoftDeletionMixin[M: _ModelDeletedAt]:
     ) -> Select[tuple[M]]:
         statement = super().get_base_statement()  # type: ignore[misc]
         if not include_deleted:
-            statement = statement.where(self.model.deleted_at.is_(None))  # type: ignore[attr-defined]
+            statement = statement.where(self.model.deleted_at.is_(None))  # type: ignore[attr-defined]  # ty:ignore[unresolved-attribute]
         return statement
 
     async def soft_delete(self, object: M, *, flush: bool = False) -> M:
@@ -143,7 +143,7 @@ class RepositorySortingMixin[M, SP: StrEnum]:
     """
 
     def get_sort_clause(self, sort: SP) -> Any:
-        column = getattr(self.model, sort.value)  # type: ignore[attr-defined]
+        column = getattr(self.model, sort.value)  # type: ignore[attr-defined]  # ty:ignore[unresolved-attribute]
         return column
 
     def apply_sorting(

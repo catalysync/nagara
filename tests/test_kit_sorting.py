@@ -46,7 +46,7 @@ def test_unknown_field_raises_validation_failed():
         parse_sorting("bogus", _Sort)
     assert exc.value.error_code == "validation_failed"
     assert exc.value.errors[0].loc == ("query", "sort")
-    assert "bogus" in exc.value.errors[0].input
+    assert "bogus" in exc.value.errors[0].input  # ty:ignore[unsupported-operator]
 
 
 def test_partial_invalid_collects_all_errors():

@@ -72,7 +72,7 @@ class NagaraError(Exception):
         if cls._schema_cache is not None:
             return cls._schema_cache
 
-        error_literal = Literal[cls.error_code]  # type: ignore[valid-type]
+        error_literal = Literal[cls.error_code]  # type: ignore[valid-type]  # ty:ignore[invalid-type-form]
         cls._schema_cache = create_model(
             cls.__name__,
             error=(error_literal, Field(examples=[cls.error_code])),

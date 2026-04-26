@@ -31,7 +31,7 @@ def _stub_engine(version_num: int):
 
 async def test_passes_when_server_version_meets_minimum():
     with patch("nagara.main._get_probe_engine", return_value=_stub_engine(160003)):
-        await _check_postgres_version(None)  # type: ignore[arg-type]
+        await _check_postgres_version(None)  # type: ignore[arg-type]  # ty:ignore[invalid-argument-type]
 
 
 async def test_raises_when_server_version_below_minimum():
@@ -39,7 +39,7 @@ async def test_raises_when_server_version_below_minimum():
         patch("nagara.main._get_probe_engine", return_value=_stub_engine(140002)),
         pytest.raises(RuntimeError, match="major version 14"),
     ):
-        await _check_postgres_version(None)  # type: ignore[arg-type]
+        await _check_postgres_version(None)  # type: ignore[arg-type]  # ty:ignore[invalid-argument-type]
 
 
 async def test_skipped_when_min_version_zero():
@@ -51,5 +51,5 @@ async def test_skipped_when_min_version_zero():
         temporary_settings(POSTGRES_MIN_VERSION=0),
         patch("nagara.main._get_probe_engine") as get_eng,
     ):
-        await _check_postgres_version(None)  # type: ignore[arg-type]
+        await _check_postgres_version(None)  # type: ignore[arg-type]  # ty:ignore[invalid-argument-type]
     get_eng.assert_not_called()

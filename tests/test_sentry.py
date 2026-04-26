@@ -32,17 +32,17 @@ def test_configure_sentry_initializes_when_dsn_set(monkeypatch):
 
 def test_before_send_drops_typed_errors():
     event = {"tags": {"nagara_typed_error": "true"}}
-    assert _before_send(event, {}) is None  # type: ignore[arg-type]
+    assert _before_send(event, {}) is None  # type: ignore[arg-type]  # ty:ignore[invalid-argument-type]
 
 
 def test_before_send_keeps_other_events():
     event = {"tags": {"nagara_typed_error": "false"}}
-    assert _before_send(event, {}) is event  # type: ignore[arg-type]
+    assert _before_send(event, {}) is event  # type: ignore[arg-type]  # ty:ignore[invalid-argument-type]
 
 
 def test_before_send_keeps_event_with_no_tags():
     event = {}
-    assert _before_send(event, {}) is event  # type: ignore[arg-type]
+    assert _before_send(event, {}) is event  # type: ignore[arg-type]  # ty:ignore[invalid-argument-type]
 
 
 def test_mark_typed_error_sets_tag_and_context():

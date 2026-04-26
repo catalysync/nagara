@@ -35,8 +35,8 @@ class _SortBy(StrEnum):
 
 class _Repo(
     RepositorySortingMixin[_Item, _SortBy],
-    RepositorySoftDeletionMixin[_Item],
-    RepositoryBase[_Item],
+    RepositorySoftDeletionMixin[_Item],  # ty:ignore[invalid-type-arguments]
+    RepositoryBase[_Item],  # ty:ignore[invalid-type-arguments]
 ):
     model = _Item
 
