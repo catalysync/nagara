@@ -13,7 +13,7 @@ default:
 # Sync deps + bring up local services. One-shot bootstrap from a fresh clone.
 bootstrap:
     uv sync --all-groups
-    docker compose up -d postgres redis
+    docker compose up -d postgres redis minio minio-setup
     @echo ""
     @echo "Bootstrapped. Start the app with: just dev"
 
