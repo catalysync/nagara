@@ -24,6 +24,7 @@ from nagara.lifespan import (
     _startup_hooks,
     build_lifespan,
     on_shutdown,
+    on_startup,
 )
 from nagara.logging import configure_logging
 from nagara.middleware import (
@@ -61,6 +62,26 @@ async def _dispose_probe_engine(_app: FastAPI) -> None:
     if "_get_probe_engine" in globals() and _get_probe_engine.cache_info().currsize:
         await _get_probe_engine().dispose()
         _get_probe_engine.cache_clear()
+
+
+@on_startup
+async def _check_postgres_version(_app: FastAPI) -> None:
+    """Fail-fast if the connected Postgres is older than the configured
+    minimum. Cheap one-shot SELECT during startup; saves baffling
+    runtime errors when a deploy lands on an unsupported server."""
+    if settings.POSTGRES_MIN_VERSION == 0:
+        return
+    engine = _get_probe_engine()
+    async with engine.connect() as conn:
+        result = await conn.execute(text("SHOW server_version_num"))
+        version_num = int(result.scalar_one())
+    major = version_num // 10000
+    if major < settings.POSTGRES_MIN_VERSION:
+        raise RuntimeError(
+            f"PostgreSQL {major} is older than the configured minimum "
+            f"{settings.POSTGRES_MIN_VERSION}. Upgrade the server or set "
+            f"NAGARA_POSTGRES_MIN_VERSION to override."
+        )
 
 
 def _request_id(request: Request) -> str:

@@ -200,6 +200,15 @@ class Settings(BaseSettings):
         ge=1024,
         description="Reject requests whose Content-Length exceeds this many bytes with 413.",
     )
+    POSTGRES_MIN_VERSION: int = Field(
+        default=15,
+        ge=0,
+        le=99,
+        description=(
+            "Minimum supported PostgreSQL major version. Boot fails if the server "
+            "reports a lower version — set to 0 to disable the check."
+        ),
+    )
 
     # ── Sessions ────────────────────────────────────────────────────────
     USER_SESSION_TTL: timedelta = Field(
