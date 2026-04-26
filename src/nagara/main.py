@@ -19,7 +19,7 @@ from slowapi.errors import RateLimitExceeded
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
-from nagara.config import settings
+from nagara.config import settings, verify_settings
 from nagara.exceptions import NagaraError, ValidationFailed
 from nagara.lifespan import (
     _shutdown_hooks,
@@ -88,15 +88,8 @@ async def _check_postgres_version(_app: FastAPI) -> None:
 
 
 @on_startup
-async def _check_production_secrets(_app: FastAPI) -> None:
-    """Refuse to boot in production with default-or-empty secrets."""
-    if not settings.is_production():
-        return
-    if not settings.SECRET_KEY.get_secret_value():
-        raise RuntimeError(
-            "NAGARA_SECRET_KEY is empty. Generate one with "
-            "`python -c 'import secrets; print(secrets.token_urlsafe(64))'`."
-        )
+async def _verify_production_settings(_app: FastAPI) -> None:
+    verify_settings(settings)
 
 
 def _request_id(request: Request) -> str:
