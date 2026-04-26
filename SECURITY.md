@@ -24,7 +24,7 @@ Out of the box nagara:
 - Rejects oversized request bodies via `ContentSizeLimitMiddleware`
 - Rejects unsafe path segments via `kit.paths.safe_join` / `ValidatedFileName`
 - Defaults `CORS_ALLOW_CREDENTIALS=False` and refuses to start with `*` + credentials
-- Issues short-lived JWT access tokens + longer-lived refresh tokens (Argon2id-hashed passwords)
+- Sets standard browser-hardening response headers (HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy)
 - Uses Sentry's `before_send` filter to drop typed-error events from production noise
 
 If you find a default that's weaker than this list claims, that's a security issue —
