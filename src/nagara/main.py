@@ -7,6 +7,7 @@ registered with ``@on_startup`` / ``@on_shutdown``.
 
 from __future__ import annotations
 
+import functools
 import logging
 
 from fastapi import FastAPI, Request, status
@@ -41,17 +42,25 @@ configure_sentry()
 logger = logging.getLogger(__name__)
 
 
-_probe_engine: AsyncEngine = create_async_engine(
-    settings.get_postgres_dsn("asyncpg"),
-    pool_size=1,
-    max_overflow=0,
-    pool_pre_ping=False,
-)
+@functools.cache
+def _get_probe_engine() -> AsyncEngine:
+    """Tiny, lazily-built engine for the readiness probe. Kept separate
+    from the application's request-serving pool so a slow check can't
+    exhaust it. Cached so subsequent calls share one engine; tests can
+    swap by patching ``nagara.main._get_probe_engine``."""
+    return create_async_engine(
+        settings.get_postgres_dsn("asyncpg"),
+        pool_size=1,
+        max_overflow=0,
+        pool_pre_ping=False,
+    )
 
 
 @on_shutdown
 async def _dispose_probe_engine(_app: FastAPI) -> None:
-    await _probe_engine.dispose()
+    if "_get_probe_engine" in globals() and _get_probe_engine.cache_info().currsize:
+        await _get_probe_engine().dispose()
+        _get_probe_engine.cache_clear()
 
 
 def _request_id(request: Request) -> str:
@@ -135,7 +144,7 @@ def create_app() -> FastAPI:
     @app.get("/health/ready", tags=["health"])
     async def health_ready() -> JSONResponse:
         try:
-            async with _probe_engine.connect() as conn:
+            async with _get_probe_engine().connect() as conn:
                 await conn.execute(text("SELECT 1"))
         except Exception as exc:
             logger.warning("readiness probe failed: %s", exc)
