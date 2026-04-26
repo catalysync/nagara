@@ -53,9 +53,7 @@ Open an issue with:
 
 ## Feature requests
 
-Open a discussion first. Most feature ideas live in
-[`nagara-planning/`](https://github.com/catalysync/nagara-planning) — if
-your idea isn't there, the discussion is the right place to start.
+Open a discussion first so we can align on shape before code.
 
 ## Code of conduct
 
