@@ -24,7 +24,7 @@ jobs:
         run: uv lock --upgrade
 
       - name: open pull request
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@v8
         with:
           branch: deps/uv-lock-upgrade
           title: "weekly uv lock --upgrade"
