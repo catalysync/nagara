@@ -1,0 +1,72 @@
+{
+  "eyebrow": "commerce suite",
+  "heroLead": "A suite of products that",
+  "heroEmphasis": "scales",
+  "heroTrail": "with you.",
+  "heroSub": "A unified suite to scale your workflows and give back control of your business growth.",
+  "heroCta": "See the suite",
+  "suiteHeading": "The suite",
+  "suiteSub": "crafted purposefully",
+  "products": [
+    {
+      "index": "01",
+      "name": "Relay",
+      "pov": "connect with every customer, at every touchpoint",
+      "desc": "enabling pro-active support through your customer lifecycle",
+      "linkLabel": "relay.nagara.cloud",
+      "href": "https://relay.nagara.cloud",
+      "shot": "/media/shots/products/0/shot.png"
+    },
+    {
+      "index": "02",
+      "name": "Crate",
+      "pov": "Run your Business",
+      "desc": "Design your Storefront, and your Business",
+      "linkLabel": "crate.nagara.cloud",
+      "href": "crate.nagara.cloud",
+      "shot": "/media/shots/products/1/shot.png"
+    },
+    {
+      "index": "03",
+      "name": "Hangar",
+      "pov": "simplify your deployment operations",
+      "desc": "Simplify deployment and server management with tools that scale",
+      "linkLabel": "hangar.nagara.cloud",
+      "href": "https://hangar.nagara.cloud",
+      "shot": "/media/shots/products/2/shot.png"
+    },
+    {
+      "index": "04",
+      "name": "Tree",
+      "pov": "data transformation copilot for powerful insights",
+      "desc": "Tree turns the canvas into your data warehouse’s control plane. Design pipelines visually with a powerful copilot, version-controlled and governed",
+      "linkLabel": "tree.nagara.cloud",
+      "href": "https://tree.nagara.cloud",
+      "shot": "/media/shots/products/3/shot.png"
+    },
+    {
+      "index": "05",
+      "name": "Atlas",
+      "pov": "Accounting that scales with you.",
+      "desc": "close your books in real time with high speed and flexible GL automation and reporting",
+      "linkLabel": "atlas.nagara.cloud",
+      "href": "https://atlas.nagara.cloud"
+    }
+  ],
+  "tenets": [
+    {
+      "k": "1",
+      "t": "enable simple but effective workflow implementation"
+    },
+    {
+      "k": "2",
+      "t": "secure by default"
+    },
+    {
+      "k": "3",
+      "t": "at the scale of your business growth"
+    }
+  ],
+  "footerHeading": "Work with us.",
+  "contactEmail": "hello@nagara.cloud"
+}
